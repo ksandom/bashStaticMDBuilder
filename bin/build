@@ -1,0 +1,82 @@
+#!/bin/bash
+# Build the site.
+
+. config
+
+function getDocs
+{
+    cd src
+    find -iname '*.md'
+    cd ..
+}
+
+function getOutName
+{
+    local name="$1"
+    
+    if [ "$(basename "$name")" == 'README.md' ]; then
+        echo "$(dirname "$name")/index.html"
+    else
+        echo "$name" | sed 's/md$/html/g'
+    fi
+}
+
+function assertDir
+{
+    local name="$(dirname "$1")"
+    
+    if [ "$name" != '/' ]; then
+        mkdir -p "$name"
+    fi
+}
+
+function buildDocs
+{
+    cd build
+    while read -r fileIn; do
+        assertDir "$fileIn"
+        
+        fileOut="$(getOutName "$fileIn")"
+        echo "Build $fileOut."
+        cat ../templates/head.html > "$fileOut"
+        pandoc -f markdown -t html "../src/$fileIn" >> "$fileOut"
+        cat ../templates/foot.html >> "$fileOut"
+    done
+}
+
+function copyAssets
+{
+    for asset in img js css; do
+        if [ -e "src/$asset" ]; then
+            echo "Copying $asset."
+            rsync -r "src/$asset" build/ &
+        else
+            echo "Skipping $asset."
+        fi
+    done
+}
+
+function findSubAssets
+{
+    cd src
+    find | grep -v '\(/$\|.md$\)'
+}
+
+function copySubAssets
+{
+    cd build
+    while read fileIn; do
+        mkdir -p "$(dirname "$fileIn")"
+        if [ ! -d "../src/$fileIn" ]; then
+            cp "../src/$fileIn" "$fileIn"
+        fi
+    done
+}
+
+mkdir -p build
+copyAssets
+findSubAssets | copySubAssets &
+getDocs | buildDocs
+
+# TODO Finish move of templates into src.
+# TODO Do lowercase symlinks.

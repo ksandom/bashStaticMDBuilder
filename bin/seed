@@ -1,0 +1,9 @@
+#!/bin/bash
+# Seed a new project with the stuff you need to build the site.
+
+installPathBin="$(dirname "$0")"
+installPath="$(dirname "$installPathBin")"
+
+ln -s "$installPath"/bin .
+mkdir -p build src/{templates,site}
+

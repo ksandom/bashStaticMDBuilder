@@ -1,0 +1,6 @@
+#!/bin/bash
+# Test the build.
+
+cd build
+python -m SimpleHTTPServer 8000
+

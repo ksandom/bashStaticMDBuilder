@@ -1,0 +1,6 @@
+#!/bin/bash
+
+mkdir -p oops
+mv * oops
+cd oops
+mv README.md config bin src ..
