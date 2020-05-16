@@ -49,7 +49,7 @@ function prepDocs
 {
     cd build
     rm -Rf intermediate
-    mkdir -p ../intermediate/{rss,suggested,tags,preview}
+    mkdir -p ../intermediate/{rss,suggested,tags,tagCombos,preview}
     while read -r fileIn; do
         # Prep
         assertDir "$fileIn"
@@ -63,11 +63,13 @@ function prepDocs
         releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
         tags="$(getDocAttribute "$srcFile" 'TAGS')"
         tighterTags="$(echo "$tags" | sed 's/, /,/g')"
+        uniqueTags="$(getUniqueTags "$tighterTags")"
         title="$(getDocAttribute "$srcFile" 'TITLE')"
         titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
         
         # Build intermediate stuff.
         addDocToTags "$myTag" "$releaseDate" "$tighterTags"
+        saveTagCombo "$uniqueTags"
         buildPreview "$srcFile" "../intermediate/preview/$myTag"
         
     done
@@ -89,6 +91,7 @@ function buildDocs
         releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
         tags="$(getDocAttribute "$srcFile" 'TAGS')"
         tighterTags="$(echo "$tags" | sed 's/, /,/g')"
+        uniqueTags="$(getUniqueTags "$tighterTags")"
         title="$(getDocAttribute "$srcFile" 'TITLE')"
         titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
         
@@ -137,14 +140,46 @@ function sortTags
 {
     cd  intermediate/tags
     
+    echo -n "Sorting tags..."
     for tag in *.raw;do
         sort -u "$tag" > "$tag.sorted"
         shortTag="$(echo "$tag" | sed 's/\.raw$//g')"
         mv "$tag.sorted" "$shortTag"
         rm "$tag"
     done
+    echo "Done."
     
     cd ../.. # TODO Is this really needed?
+}
+
+function getUniqueTags
+{
+    local tags="$1"
+    echo "$tags" | sed 's/,/\n/g' | sort -u | grep -v '^$' | tr '\n' ',' | sed 's/,$//g'
+}
+
+function saveTagCombo
+{
+    # Assumed to be called within the prep. So inside the ./build directory.
+    local tagCombo="$1"
+    touch "../intermediate/tagCombos/$tagCombo"
+}
+
+function fillTagCombos
+{
+    # Assumed to be called from the script root. So not inside any sub-directory.
+    cd intermediate/tagCombos
+    
+    for tagCombo in *; do
+        IFS=','
+        echo "Fill tagCombo $tagCombo."
+        for tag in $tagCombo; do
+            cat "../tags/$tag"
+        done | sort -u > "$tagCombo"
+        IFS=' '
+    done
+    
+    cd ~-
 }
 
 function buildPreview
@@ -203,6 +238,10 @@ copyAssets
 findSubAssets | copySubAssets &
 getDocs | prepDocs
 sortTags
+fillTagCombos
+# TODO Build tags.
+# TODO Build tagCombos.
+# TODO Resize thumbnails.
 getDocs | buildDocs
 
 # TODO Do lowercase symlinks.
