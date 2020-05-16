@@ -49,59 +49,66 @@ function prepDocs
 {
     cd build
     rm -Rf intermediate
-    mkdir -p ../intermediate/{rss,suggested,tags,tagCombos,preview}
+    mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list} rss
     while read -r fileIn; do
-        # Prep
-        assertDir "$fileIn"
-        fileOut="$(getOutName "$fileIn")"
-        echo "Prep $fileOut."
-        
-        # Get the document attributes.
-        srcFile="../src/site/$fileIn"
-        myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
-        public="$(getDocAttribute "$srcFile" 'PUBLIC')"
-        releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
-        tags="$(getDocAttribute "$srcFile" 'TAGS')"
-        tighterTags="$(echo "$tags" | sed 's/, /,/g')"
-        uniqueTags="$(getUniqueTags "$tighterTags")"
-        title="$(getDocAttribute "$srcFile" 'TITLE')"
-        titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
-        
-        # Build intermediate stuff.
-        addDocToTags "$myTag" "$releaseDate" "$tighterTags"
-        saveTagCombo "$uniqueTags"
-        buildPreview "$srcFile" "../intermediate/preview/$myTag"
-        
+        _buildDoc "$fileIn" "Prep" &
     done
+    wait
+}
+
+function _buildDoc
+{
+    local fileIn="$1"
+    local stage="$2"
+    
+    # Prep
+    assertDir "$fileIn"
+    fileOut="$(getOutName "$fileIn")"
+    echo "$stage $fileOut."
+    
+    # Get the document attributes.
+    srcFile="../src/site/$fileIn"
+    myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
+    public="$(getDocAttribute "$srcFile" 'PUBLIC')"
+    releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
+    tags="$(getDocAttribute "$srcFile" 'TAGS')"
+    tighterTags="$(echo "$tags" | sed 's/, /,/g')"
+    uniqueTags="$(getUniqueTags "$tighterTags")"
+    title="$(getDocAttribute "$srcFile" 'TITLE')"
+    titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
+    
+    case "$stage" in
+        "Prep")
+            # Build intermediate stuff.
+            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,sitemap"
+            saveTagCombo "$uniqueTags"
+            buildPreview "$srcFile" "../intermediate/preview/$myTag"
+            # TODO Build HTML item.
+            # TODO Build RSS item.
+        ;;
+        "Build")
+            # Build the doc.
+            cat ../src/templates/head.html > "$fileOut"
+            #echo "s#~!TITLE!~#$title#g;s#TAGS#$tags#g"
+            cat "$srcFile" | insertYoutube | pandoc -f markdown -t html >> "$fileOut"
+            sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
+            cat ../src/templates/foot.html >> "$fileOut"
+        ;;
+    esac
 }
 
 function buildDocs
 {
     cd build
     while read -r fileIn; do
-        # Prep
-        assertDir "$fileIn"
-        fileOut="$(getOutName "$fileIn")"
-        echo "Build $fileOut."
-        
-        # Get the document attributes.
-        srcFile="../src/site/$fileIn"
-        myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
-        public="$(getDocAttribute "$srcFile" 'PUBLIC')"
-        releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
-        tags="$(getDocAttribute "$srcFile" 'TAGS')"
-        tighterTags="$(echo "$tags" | sed 's/, /,/g')"
-        uniqueTags="$(getUniqueTags "$tighterTags")"
-        title="$(getDocAttribute "$srcFile" 'TITLE')"
-        titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
-        
-        # Build the doc.
-        cat ../src/templates/head.html > "$fileOut"
-        #echo "s#~!TITLE!~#$title#g;s#TAGS#$tags#g"
-        cat "$srcFile" | insertYoutube | pandoc -f markdown -t html >> "$fileOut"
-        sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
-        cat ../src/templates/foot.html >> "$fileOut"
+        _buildDoc "$fileIn" "Build" &
     done
+    wait
+}
+
+function buildItem
+{
+    true
 }
 
 function addDocToTags
@@ -240,7 +247,12 @@ getDocs | prepDocs
 sortTags
 fillTagCombos
 # TODO Build tags.
+# getLists intermediate/tags | buildList rss .rss build/rss 10
+# getLists intermediate/tags | buildList html .html intermediate/list 100000
+
 # TODO Build tagCombos.
+# getLists intermediate/tagCombos | buildList html .html intermediate/list 100000
+
 # TODO Resize thumbnails.
 getDocs | buildDocs
 
