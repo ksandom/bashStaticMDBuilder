@@ -1,12 +1,13 @@
 #!/bin/bash
 # Build the site.
 
+previewLength=2
 . config
 
 function getDocs
 {
-    cd src
-    find -iname '*.md'
+    cd src/site
+    find . -iname '*.md'
     cd ..
 }
 
@@ -30,26 +31,150 @@ function assertDir
     fi
 }
 
+function getDocAttribute
+{
+    local fileName="$1"
+    local attribute="$2"
+    
+    data="$(grep "<!-- $attribute: " "$fileName" | sed 's/^.*<!-- //g;s/ -->$//g' | cut -d\  -f2-)"
+    
+    if [ "$data" != '' ]; then
+        echo "$data"
+    else
+        echo "Didn't get any value for document attribute '$attribute' in $fileName." >&2
+    fi
+}
+
+function prepDocs
+{
+    cd build
+    rm -Rf intermediate
+    mkdir -p ../intermediate/{rss,suggested,tags,preview}
+    while read -r fileIn; do
+        # Prep
+        assertDir "$fileIn"
+        fileOut="$(getOutName "$fileIn")"
+        echo "Prep $fileOut."
+        
+        # Get the document attributes.
+        srcFile="../src/site/$fileIn"
+        myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
+        public="$(getDocAttribute "$srcFile" 'PUBLIC')"
+        releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
+        tags="$(getDocAttribute "$srcFile" 'TAGS')"
+        tighterTags="$(echo "$tags" | sed 's/, /,/g')"
+        title="$(getDocAttribute "$srcFile" 'TITLE')"
+        titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
+        
+        # Build intermediate stuff.
+        addDocToTags "$myTag" "$releaseDate" "$tighterTags"
+        buildPreview "$srcFile" "../intermediate/preview/$myTag"
+        
+    done
+}
+
 function buildDocs
 {
     cd build
     while read -r fileIn; do
+        # Prep
         assertDir "$fileIn"
-        
         fileOut="$(getOutName "$fileIn")"
         echo "Build $fileOut."
-        cat ../templates/head.html > "$fileOut"
-        pandoc -f markdown -t html "../src/$fileIn" >> "$fileOut"
-        cat ../templates/foot.html >> "$fileOut"
+        
+        # Get the document attributes.
+        srcFile="../src/site/$fileIn"
+        myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
+        public="$(getDocAttribute "$srcFile" 'PUBLIC')"
+        releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
+        tags="$(getDocAttribute "$srcFile" 'TAGS')"
+        tighterTags="$(echo "$tags" | sed 's/, /,/g')"
+        title="$(getDocAttribute "$srcFile" 'TITLE')"
+        titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
+        
+        # Build the doc.
+        cat ../src/templates/head.html > "$fileOut"
+        #echo "s#~!TITLE!~#$title#g;s#TAGS#$tags#g"
+        cat "$srcFile" | insertYoutube | pandoc -f markdown -t html >> "$fileOut"
+        sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
+        cat ../src/templates/foot.html >> "$fileOut"
+    done
+}
+
+function addDocToTags
+{
+    local doc="$1"
+    local date="$2"
+    local tags="$3"
+    
+    IFS=","
+    
+    for tag in $tags; do
+        addDocToTag "$doc" "$date" $tag
+    done
+    
+    IFS=" "
+}
+
+function addDocToTag
+{
+    # This is assumed to be  run from inside addDocToTags, inside buildDocs. Therefore the it will be executed inside the ./build directory, so all paths are relative to that.
+    local tagPath="../intermediate/tags"
+    
+    local doc="$1"
+    local date="$2"
+    local tag="$3"
+    
+    if [ "$doc" == '' ] || [ "$date" == '' ] || [ "$tag" == '' ] ; then
+        echo "Could not add doc '$doc' to tag '$tag' on date '$date'." >&2
+        return 1
+    else
+        echo "$date $doc" >> "$tagPath/$tag.raw"
+    fi
+}
+
+function sortTags
+{
+    cd  intermediate/tags
+    
+    for tag in *.raw;do
+        sort -u "$tag" > "$tag.sorted"
+        shortTag="$(echo "$tag" | sed 's/\.raw$//g')"
+        mv "$tag.sorted" "$shortTag"
+        rm "$tag"
+    done
+    
+    cd ../.. # TODO Is this really needed?
+}
+
+function buildPreview
+{
+    local inFile="$1"
+    local outFile="$2"
+    
+    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile" | head -n "$previewLength")"
+    
+    echo $value > "$outFile"
+}
+
+function insertYoutube
+{
+    while read -r line; do
+        if [ "${line::29}" == "https://www.youtube.com/watch" ]; then
+            id="$(echo "$line" | sed 's/^.*v=//g;s/&.*$//g')"
+            echo '<iframe width="560" height="315" src="https://www.youtube.com/embed/'"$id"'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+        else
+            echo "$line"
+        fi
     done
 }
 
 function copyAssets
 {
     for asset in img js css; do
-        if [ -e "src/$asset" ]; then
+        if [ -e "src/site/$asset" ]; then
             echo "Copying $asset."
-            rsync -r "src/$asset" build/ &
+            rsync -r "src/site/$asset" build/ &
         else
             echo "Skipping $asset."
         fi
@@ -58,8 +183,8 @@ function copyAssets
 
 function findSubAssets
 {
-    cd src
-    find | grep -v '\(/$\|.md$\)'
+    cd src/site
+    find | grep -v '\(/$\|.md$\)' | cut -b3-
 }
 
 function copySubAssets
@@ -67,8 +192,8 @@ function copySubAssets
     cd build
     while read fileIn; do
         mkdir -p "$(dirname "$fileIn")"
-        if [ ! -d "../src/$fileIn" ]; then
-            cp "../src/$fileIn" "$fileIn"
+        if [ ! -d "../src/site/$fileIn" ]; then
+            cp "../src/site/$fileIn" "$fileIn"
         fi
     done
 }
@@ -76,7 +201,8 @@ function copySubAssets
 mkdir -p build
 copyAssets
 findSubAssets | copySubAssets &
+getDocs | prepDocs
+sortTags
 getDocs | buildDocs
 
-# TODO Finish move of templates into src.
 # TODO Do lowercase symlinks.
