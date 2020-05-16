@@ -49,7 +49,7 @@ function prepDocs
 {
     cd build
     rm -Rf intermediate
-    mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list} rss
+    mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed} rss
     while read -r fileIn; do
         _buildDoc "$fileIn" "Prep" &
     done
@@ -64,7 +64,7 @@ function _buildDoc
     # Prep
     assertDir "$fileIn"
     fileOut="$(getOutName "$fileIn")"
-    echo "$stage $fileOut."
+    echo "$stage doc $fileOut."
     
     # Get the document attributes.
     srcFile="../src/site/$fileIn"
@@ -83,8 +83,8 @@ function _buildDoc
             addDocToTags "$myTag" "$releaseDate" "$uniqueTags,sitemap"
             saveTagCombo "$uniqueTags"
             buildPreview "$srcFile" "../intermediate/preview/$myTag"
-            # TODO Build HTML item.
-            # TODO Build RSS item.
+            buildItem "$myTag" "html"
+            buildItem "$myTag" "rss"
         ;;
         "Build")
             # Build the doc.
@@ -92,6 +92,7 @@ function _buildDoc
             #echo "s#~!TITLE!~#$title#g;s#TAGS#$tags#g"
             cat "$srcFile" | insertYoutube | pandoc -f markdown -t html >> "$fileOut"
             sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
+            cat "../intermediate/list/$uniqueTags" >> "$fileOut"
             cat ../src/templates/foot.html >> "$fileOut"
         ;;
     esac
@@ -108,7 +109,36 @@ function buildDocs
 
 function buildItem
 {
-    true
+    # This is assumed to be run within prep/build so will be in the ./build directory.
+    local tag="$1"
+    local type="$2"
+    
+    cat "../src/templates/item.$type" | \
+        sed "s#~!TITLE!~#$title#g; s#~!CONTENT!~#$(cat "../intermediate/preview/$tag")#g; s#~!RELEASEDATE!~#$releaseDate#g; s#~!SITEURL!~#$siteURL#g; s#~!MYTAG!~#$tag#g" \
+        > "../intermediate/$type/$tag"
+}
+
+function buildRSSFeeds
+{
+    while read -r feed; do
+        _buildRSSFeed "$feed" &
+    done
+    wait
+}
+
+function _buildRSSFeed
+{
+    local feedName="$1"
+    local fileName="build/rss/$feedName.rss"
+    echo "Build feed $feedName."
+    
+    cat "src/templates/head.rss" \
+        > "$fileName"
+    
+    cat "intermediate/feed/$feedName" >> "$fileName"
+    
+    cat "src/templates/foot.rss" \
+        >> "$fileName"
 }
 
 function addDocToTags
@@ -149,7 +179,7 @@ function sortTags
     
     echo -n "Sorting tags..."
     for tag in *.raw;do
-        sort -u "$tag" > "$tag.sorted"
+        sort -ur "$tag" > "$tag.sorted"
         shortTag="$(echo "$tag" | sed 's/\.raw$//g')"
         mv "$tag.sorted" "$shortTag"
         rm "$tag"
@@ -182,7 +212,7 @@ function fillTagCombos
         echo "Fill tagCombo $tagCombo."
         for tag in $tagCombo; do
             cat "../tags/$tag"
-        done | sort -u > "$tagCombo"
+        done | sort -ru > "$tagCombo"
         IFS=' '
     done
     
@@ -194,9 +224,9 @@ function buildPreview
     local inFile="$1"
     local outFile="$2"
     
-    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile" | head -n "$previewLength")"
+    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile" | head -n "$previewLength" | tr '\n' ' ')"
     
-    echo $value > "$outFile"
+    echo "$value" > "$outFile"
 }
 
 function insertYoutube
@@ -209,6 +239,46 @@ function insertYoutube
             echo "$line"
         fi
     done
+}
+
+function getLists
+{
+    local listsLocation="$1"
+    cd "$listsLocation"
+    ls -1
+    cd ~-
+}
+
+function buildList
+{
+    # This is intended to be run from the script root. So no sub directories.
+    #rss build/rss 10
+    local listOrigin="$1"
+    local type="$2"
+    local destination="$3"
+    local limit="$4"
+    
+    while read -r feed; do
+        _buildList "$feed" &
+    done
+    wait
+}
+
+function _buildList
+{
+    local feed="$1"
+    
+    echo "Build feed contents $feed."
+    filePath="$destination/$feed"
+    rm -f "$filePath"
+    while read -r releaseDate item; do
+        cat intermediate/$type/$item >> "$filePath"
+    done < <(cat "$listOrigin/$feed")
+}
+
+function deriveLatest
+{
+    head -n "$howManyPostsOnRoot" intermediate/tags/sitemap > intermediate/tags/latest
 }
 
 function copyAssets
@@ -244,16 +314,13 @@ mkdir -p build
 copyAssets
 findSubAssets | copySubAssets &
 getDocs | prepDocs
+deriveLatest
 sortTags
 fillTagCombos
-# TODO Build tags.
-# getLists intermediate/tags | buildList rss .rss build/rss 10
-# getLists intermediate/tags | buildList html .html intermediate/list 100000
-
-# TODO Build tagCombos.
-# getLists intermediate/tagCombos | buildList html .html intermediate/list 100000
-
-# TODO Resize thumbnails.
+getLists intermediate/tags | buildList intermediate/tags rss intermediate/feed 10
+getLists intermediate/tags | buildList intermediate/tags html intermediate/list 100000
+getLists intermediate/tagCombos | buildList intermediate/tagCombos html intermediate/list 100000
+getLists intermediate/tags | buildRSSFeeds
 getDocs | buildDocs
 
 # TODO Do lowercase symlinks.
