@@ -47,8 +47,8 @@ function getDocAttribute
 
 function prepDocs
 {
+    rm -Rf ../intermediate
     cd build
-    rm -Rf intermediate
     mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed} rss
     while read -r fileIn; do
         _buildDoc "$fileIn" "Prep" &
@@ -80,7 +80,7 @@ function _buildDoc
     case "$stage" in
         "Prep")
             # Build intermediate stuff.
-            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,sitemap"
+            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,all,sitemap"
             saveTagCombo "$uniqueTags"
             buildPreview "$srcFile" "../intermediate/preview/$myTag"
             buildItem "$myTag" "html"
@@ -208,12 +208,12 @@ function fillTagCombos
     cd intermediate/tagCombos
     
     for tagCombo in *; do
-        IFS=','
         echo "Fill tagCombo $tagCombo."
-        for tag in $tagCombo; do
+        for tag in $(echo $tagCombo | sed 's/,/\n/g'); do
             cat "../tags/$tag"
+            echo "  $tag" >&2
+            cat "../tags/$tag" >&2
         done | sort -ru > "$tagCombo"
-        IFS=' '
     done
     
     cd ~-
@@ -278,7 +278,7 @@ function _buildList
 
 function deriveLatest
 {
-    head -n "$howManyPostsOnRoot" intermediate/tags/sitemap > intermediate/tags/latest
+    head -n "$howManyPostsOnRoot" intermediate/tags/all > intermediate/tags/latest
 }
 
 function copyAssets
@@ -334,8 +334,8 @@ mkdir -p build
 copyAssets
 findSubAssets | copySubAssets &
 getDocs | prepDocs
-deriveLatest
 sortTags
+deriveLatest
 fillTagCombos
 getLists intermediate/tags | buildList intermediate/tags rss intermediate/feed 10
 getLists intermediate/tags | buildList intermediate/tags html intermediate/list 100000
