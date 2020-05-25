@@ -8,7 +8,7 @@ function getDocs
 {
     cd src/site
     find . -iname '*.md'
-    cd ..
+    cd .. # TODO Is this really needed?
 }
 
 function getOutName
@@ -49,7 +49,7 @@ function prepDocs
 {
     rm -Rf ../intermediate
     cd build
-    mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed} rss
+    mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed,tagBar/tags,tagBar/bars} rss
     while read -r fileIn; do
         _buildDoc "$fileIn" "Prep" &
     done
@@ -80,11 +80,12 @@ function _buildDoc
     case "$stage" in
         "Prep")
             # Build intermediate stuff.
-            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,all,sitemap"
+            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+            # TODO Add create a stub for each tag and make this doc a member of it.
             saveTagCombo "$uniqueTags"
             buildPreview "$srcFile" "../intermediate/preview/$myTag"
-            buildItem "$myTag" "html"
-            buildItem "$myTag" "rss"
+            buildItem "$myTag" "html" "$uniqueTags"
+            buildItem "$myTag" "rss" "$uniqueTags"
         ;;
         "Build")
             # Build the doc.
@@ -93,6 +94,7 @@ function _buildDoc
             cat "$srcFile" | insertYoutube | pandoc -f markdown -t html >> "$fileOut"
             sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
             cat "../intermediate/list/$uniqueTags" >> "$fileOut"
+            getTagBar "$uniqueTags" "html" >> "$fileOut"
             cat ../src/templates/foot.html >> "$fileOut"
         ;;
     esac
@@ -112,10 +114,35 @@ function buildItem
     # This is assumed to be run within prep/build so will be in the ./build directory.
     local tag="$1"
     local type="$2"
+    local tags="$3"
+    local itemFileOut="../intermediate/$type/$tag"
+    local tagBar="$(getTagBar "$uniqueTags" "html")"
     
     cat "../src/templates/item.$type" | \
         sed "s#~!TITLE!~#$title#g; s#~!CONTENT!~#$(cat "../intermediate/preview/$tag")#g; s#~!RELEASEDATE!~#$releaseDate#g; s#~!SITEURL!~#$siteURL#g; s#~!MYTAG!~#$tag#g" \
-        > "../intermediate/$type/$tag"
+        > "$itemFileOut"
+    
+    replaceLine "$itemFileOut" '~!ITEMTAGS!~' "$tagBar"
+}
+
+function replaceLine
+{
+    local fileName="$1"
+    local search="$2"
+    local replace="$3"
+    
+    rm -f "$fileName.replace"
+    touch "$fileName.replace"
+    while read -r line; do
+        if [ "$line" != "$search" ]; then
+            echo "$line" >> "$fileName.replace"
+        else
+            echo "$replace" >> "$fileName.replace"
+        fi
+    done < <(cat "$fileName")
+    
+    rm "$fileName"
+    mv "$fileName.replace" "$fileName"
 }
 
 function buildRSSFeeds
@@ -139,6 +166,64 @@ function _buildRSSFeed
     
     cat "src/templates/foot.rss" \
         >> "$fileName"
+}
+
+function getTagBar
+{
+    local tags="$1"
+    local type="$2"
+    local tagBarFile="../intermediate/tagBar/bars/$tags.$type"
+    
+    buildTagBar "$tags" "$type"
+    cat "$tagBarFile"
+}
+
+function buildTagBar
+{
+    local tags="$1"
+    local type="$2"
+    local tagBarFile="../intermediate/tagBar/bars/$tags.$type"
+    
+    if [ ! -f "$tagBarFile" ]; then
+        tagsContents="$(_buildTags "$tags" "$type" | _buildTagsGetContents)"
+        # echo "DEBUG $tagsContents" >&2
+        
+        cat "../src/templates/tagBar.$type" | \
+            sed "s#~!TAGS!~#$tagsContents#g" \
+            > "$tagBarFile"
+    fi
+}
+
+function _buildTagsGetContents
+{
+    while read -r fileIn; do
+        cat "$fileIn"
+    done | tr '\n' ',' | sed 's/,//g' # TODO This is a terrible hack to get rid of \n.
+}
+
+function _buildTags
+{
+    local tags="$1"
+    local type="$2"
+    
+    # TODO Do this better. Eg it won't handle tags with spaces (which shouldn't happen anyway...). Check if IFS will work here.
+    for tag in $(echo $tags | sed 's/,/ /g'); do
+        tagFileName="../intermediate/tagBar/tags/$tag.$type"
+        buildTag "$tag" "$type" "$tagFileName"
+        echo "$tagFileName"
+    done
+}
+
+function buildTag
+{
+    local tag="$1"
+    local type="$2"
+    local tagFileName="$3"
+    
+    cat "../src/templates/tag.$type" | \
+        sed "s#~!TAG!~#$tag#g" \
+        > "$tagFileName"
+    
 }
 
 function addDocToTags
@@ -314,7 +399,7 @@ function findSymlinks
 {
     cd src/site
     find . -type l | cut -b3-
-    cd ..
+    cd .. # TODO Is this really needed?
 }
 
 function copySymlinks
@@ -345,3 +430,10 @@ getDocs | buildDocs
 findSymlinks | copySymlinks
 
 # TODO Do lowercase symlinks.
+# TODO Honour build date.
+# TODO Add test flag.
+# TODO Add testcss/js.
+# TODO Mark test both ways.
+# TODO Don't upload when marked as test.
+# TODO Make tags clickable.
+# TODO Vimeo.
