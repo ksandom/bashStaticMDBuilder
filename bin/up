@@ -2,6 +2,10 @@
 # Upload.
 
 . config
-
 cd build
-aws s3 sync --delete . "$bucket"
+
+if [ ! -f .test ]; then
+    aws s3 sync --delete . "$bucket"
+else
+    echo "This build has been built with some form of testing enabled. Re-run freshBuild to re-enable uploads."
+fi

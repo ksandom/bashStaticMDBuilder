@@ -1,0 +1,5 @@
+#!/bin/bash
+
+cd build
+rm -Rf css
+ln -s ../src/site/css .
