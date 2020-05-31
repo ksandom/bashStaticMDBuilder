@@ -1,7 +1,7 @@
 #!/bin/bash
 # Build the site.
 
-previewLength=2
+previewLength=40
 . config
 
 function getDocs
@@ -76,6 +76,7 @@ function _buildDoc
     uniqueTags="$(getUniqueTags "$tighterTags")"
     title="$(getDocAttribute "$srcFile" 'TITLE')"
     titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
+    titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
     
     case "$stage" in
         "Prep")
@@ -84,8 +85,9 @@ function _buildDoc
             # TODO Add create a stub for each tag and make this doc a member of it.
             saveTagCombo "$uniqueTags"
             buildPreview "$srcFile" "../intermediate/preview/$myTag"
-            buildItem "$myTag" "html" "$uniqueTags"
+            buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnail"
             buildItem "$myTag" "rss" "$uniqueTags"
+            makeThumbnail "../src/site/$myTag/$titleImage" "$myTag/$titleImageThumbnail"
         ;;
         "Build")
             # Build the doc.
@@ -93,8 +95,13 @@ function _buildDoc
             #echo "s#~!TITLE!~#$title#g;s#TAGS#$tags#g"
             cat "$srcFile" | insertYoutube | pandoc -f markdown -t html >> "$fileOut"
             sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
-            cat "../intermediate/list/$uniqueTags" >> "$fileOut"
+            # TODO Create a wrapper for these.
+            echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
+            echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
             getTagBar "$uniqueTags" "html" >> "$fileOut"
+            echo "</DIV>" >> "$fileOut"
+            cat "../intermediate/list/$uniqueTags" >> "$fileOut"
+            echo "</DIV>" >> "$fileOut"
             cat ../src/templates/foot.html >> "$fileOut"
         ;;
     esac
@@ -115,11 +122,12 @@ function buildItem
     local tag="$1"
     local type="$2"
     local tags="$3"
+    local thumbnail="$4"
     local itemFileOut="../intermediate/$type/$tag"
     local tagBar="$(getTagBar "$uniqueTags" "html")"
     
     cat "../src/templates/item.$type" | \
-        sed "s#~!TITLE!~#$title#g; s#~!CONTENT!~#$(cat "../intermediate/preview/$tag")#g; s#~!RELEASEDATE!~#$releaseDate#g; s#~!SITEURL!~#$siteURL#g; s#~!MYTAG!~#$tag#g" \
+        sed "s#~!TITLE!~#$title#g; s#~!CONTENT!~#$(cat "../intermediate/preview/$tag")#g; s#~!RELEASEDATE!~#$releaseDate#g; s#~!SITEURL!~#$siteURL#g; s#~!MYTAG!~#$tag#g; s#~!THUMBNAIL!~#$thumbnail#g" \
         > "$itemFileOut"
     
     replaceLine "$itemFileOut" '~!ITEMTAGS!~' "$tagBar"
@@ -143,6 +151,27 @@ function replaceLine
     
     rm "$fileName"
     mv "$fileName.replace" "$fileName"
+}
+
+function getImageName
+{
+    local inputName="$1"
+    local suffix="$2"
+    
+    local extension="$(echo "$inputName" | sed 's/^.*\.//g')"
+    local name="$(echo "$inputName" | sed "s/\.$extension$//g")"
+    
+    echo "$name$suffix.$extension"
+}
+
+function makeThumbnail
+{
+    local inFile="$1"
+    local outFile="$2"
+    
+    if [ ! -f "$outFile" ]; then
+        convert -resize "$thumbnailSize" "$inFile" "$outFile"
+    fi
 }
 
 function buildRSSFeeds
@@ -309,7 +338,7 @@ function buildPreview
     local inFile="$1"
     local outFile="$2"
     
-    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile" | head -n "$previewLength" | tr '\n' ' ')"
+    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | tr '\n' ' ')"
     
     echo "$value" > "$outFile"
 }
@@ -319,7 +348,7 @@ function insertYoutube
     while read -r line; do
         if [ "${line::29}" == "https://www.youtube.com/watch" ] || [ "${line::28}" == "http://www.youtube.com/watch" ]; then
             id="$(echo "$line" | sed 's/^.*v=//g;s/&.*$//g')"
-            echo '<iframe width="560" height="315" src="https://www.youtube.com/embed/'"$id"'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
+            echo '<iframe class="video" width="560" height="315" src="https://www.youtube.com/embed/'"$id"'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
         else
             echo "$line"
         fi
