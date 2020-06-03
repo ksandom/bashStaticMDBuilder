@@ -78,6 +78,14 @@ function _buildDoc
     titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
     titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
     
+    if [ "${titleImage::1}" == '/' ]; then
+        titleImagePath="../src/site$titleImage"
+        titleImageThumbnailPath="$titleImageThumbnail"
+    else
+        titleImagePath="../src/site/$myTag/$titleImage"
+        titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
+    fi
+    
     case "$stage" in
         "Prep")
             # Build intermediate stuff.
@@ -85,9 +93,9 @@ function _buildDoc
             # TODO Add create a stub for each tag and make this doc a member of it.
             saveTagCombo "$uniqueTags"
             buildPreview "$srcFile" "../intermediate/preview/$myTag"
-            buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnail"
+            buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
             buildItem "$myTag" "rss" "$uniqueTags"
-            makeThumbnail "../src/site/$myTag/$titleImage" "$myTag/$titleImageThumbnail"
+            makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
         ;;
         "Build")
             # Build the doc.
@@ -170,6 +178,7 @@ function makeThumbnail
     local outFile="$2"
     
     if [ ! -f "$outFile" ]; then
+        mkdir -p "$(dirname "$outFile")"
         convert -resize "$thumbnailSize" "$inFile" "$outFile"
     fi
 }
@@ -458,11 +467,10 @@ getLists intermediate/tags | buildRSSFeeds
 getDocs | buildDocs
 findSymlinks | copySymlinks
 
+# TODO Make build less verbose by default.
 # TODO Do lowercase symlinks.
 # TODO Honour build date.
 # TODO Add test flag.
-# TODO Add testcss/js.
 # TODO Mark test both ways.
-# TODO Don't upload when marked as test.
 # TODO Make tags clickable.
 # TODO Vimeo.
