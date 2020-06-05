@@ -2,6 +2,7 @@
 # Build the site.
 
 previewLength=40
+doDebug=0
 . config
 
 function getDocs
@@ -41,15 +42,15 @@ function getDocAttribute
     if [ "$data" != '' ]; then
         echo "$data"
     else
-        echo "Didn't get any value for document attribute '$attribute' in $fileName." >&2
+        echo "Didn't get any value for document attribute '$attribute' in $fileName ($(pwd))." >&2
     fi
 }
 
 function prepDocs
 {
-    rm -Rf ../intermediate
     cd build
-    mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed,tagBar/tags,tagBar/bars} rss
+    mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed,tagBar/tags,tagBar/bars,related} rss
+    echo "Prep."
     while read -r fileIn; do
         _buildDoc "$fileIn" "Prep" &
     done
@@ -61,13 +62,22 @@ function _buildDoc
     local fileIn="$1"
     local stage="$2"
     
+    # TODO Fix this upstream.
+    if [ "${fileIn::12}" == 'intermediate' ]; then
+        srcFile="../$fileIn"
+        justTheFile="$(basename "$(dirname "$fileIn")")"
+        fileIn="$justTheFile/README.md"
+    else
+        srcFile="../src/site/$fileIn"
+    fi
+    
     # Prep
     assertDir "$fileIn"
     fileOut="$(getOutName "$fileIn")"
-    echo "$stage doc $fileOut."
+    
+    [ "$doDebug" -gt 0 ] && echo "$stage doc $fileOut."
     
     # Get the document attributes.
-    srcFile="../src/site/$fileIn"
     myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
     public="$(getDocAttribute "$srcFile" 'PUBLIC')"
     releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
@@ -100,7 +110,6 @@ function _buildDoc
         "Build")
             # Build the doc.
             cat ../src/templates/head.html > "$fileOut"
-            #echo "s#~!TITLE!~#$title#g;s#TAGS#$tags#g"
             cat "$srcFile" | insertYoutube | pandoc -f markdown -t html >> "$fileOut"
             sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
             # TODO Create a wrapper for these.
@@ -118,6 +127,7 @@ function _buildDoc
 function buildDocs
 {
     cd build
+    echo "Build."
     while read -r fileIn; do
         _buildDoc "$fileIn" "Build" &
     done
@@ -139,6 +149,19 @@ function buildItem
         > "$itemFileOut"
     
     replaceLine "$itemFileOut" '~!ITEMTAGS!~' "$tagBar"
+}
+
+function generateRelated
+{
+    # Thisi is assumed to be called from inside intermediate/tags
+    local tag="$1"
+    local outputDir="../related/$tag"
+    local outputFile="$outputDir/README.md"
+    
+    if [ ! -e "$outputFile" ]; then
+        mkdir -p "$outputDir"
+        cat "../../src/templates/relatedTag.md" | sed "s#~!MYTAG!~#$tag#g" > "$outputFile"
+    fi
 }
 
 function replaceLine
@@ -185,6 +208,7 @@ function makeThumbnail
 
 function buildRSSFeeds
 {
+    echo "buildRSSFeeds"
     while read -r feed; do
         _buildRSSFeed "$feed" &
     done
@@ -195,7 +219,8 @@ function _buildRSSFeed
 {
     local feedName="$1"
     local fileName="build/rss/$feedName.rss"
-    echo "Build feed $feedName."
+    
+    [ "$doDebug" -gt 0 ] && echo "Build feed $feedName."
     
     cat "src/templates/head.rss" \
         > "$fileName"
@@ -306,7 +331,10 @@ function sortTags
         shortTag="$(echo "$tag" | sed 's/\.raw$//g')"
         mv "$tag.sorted" "$shortTag"
         rm "$tag"
+        
+        generateRelated "$shortTag"
     done
+    wait
     echo "Done."
     
     cd ../.. # TODO Is this really needed?
@@ -330,12 +358,12 @@ function fillTagCombos
     # Assumed to be called from the script root. So not inside any sub-directory.
     cd intermediate/tagCombos
     
+    echo "fillTagCombos."
     for tagCombo in *; do
-        echo "Fill tagCombo $tagCombo."
+        [ "$doDebug" -gt 0 ] && echo "Fill tagCombo $tagCombo."
         for tag in $(echo $tagCombo | sed 's/,/\n/g'); do
+            [ "$doDebug" -gt 1 ] && echo "  $tag" >&2
             cat "../tags/$tag"
-            echo "  $tag" >&2
-            cat "../tags/$tag" >&2
         done | sort -ru > "$tagCombo"
     done
     
@@ -381,6 +409,7 @@ function buildList
     local destination="$3"
     local limit="$4"
     
+    echo "buildList"
     while read -r feed; do
         _buildList "$feed" &
     done
@@ -391,7 +420,8 @@ function _buildList
 {
     local feed="$1"
     
-    echo "Build feed contents $feed."
+    [ "$doDebug" -gt 0 ] && echo "Build feed contents $feed."
+    
     filePath="$destination/$feed"
     rm -f "$filePath"
     while read -r releaseDate item; do
@@ -449,15 +479,17 @@ function copySymlinks
         if [ "$subDir" != '.' ]; then
             mkdir -p "$subDir"
         fi
-        cp -Pv "../src/site/$symlink" "$symlink"
+        cp -P "../src/site/$symlink" "$symlink"
     done
 }
 
+rm -Rf ../intermediate
 mkdir -p build
 copyAssets
 findSubAssets | copySubAssets &
 getDocs | prepDocs
 sortTags
+# find intermediate/related | prepDocs
 deriveLatest
 fillTagCombos
 getLists intermediate/tags | buildList intermediate/tags rss intermediate/feed 10
@@ -465,6 +497,7 @@ getLists intermediate/tags | buildList intermediate/tags html intermediate/list 
 getLists intermediate/tagCombos | buildList intermediate/tagCombos html intermediate/list 100000
 getLists intermediate/tags | buildRSSFeeds
 getDocs | buildDocs
+find intermediate/related -type f | buildDocs
 findSymlinks | copySymlinks
 
 # TODO Make build less verbose by default.
