@@ -100,7 +100,6 @@ function _buildDoc
         "Prep")
             # Build intermediate stuff.
             addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
-            # TODO Add create a stub for each tag and make this doc a member of it.
             saveTagCombo "$uniqueTags"
             buildPreview "$srcFile" "../intermediate/preview/$myTag"
             buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
@@ -111,7 +110,7 @@ function _buildDoc
             # Build the doc.
             cat ../src/templates/head.html > "$fileOut"
             cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
-            sed -i "s#~!TITLE!~#$title#g;s#~!TITLEIMAGE!~#$titleImage#g;s#~!TAGS!~#$tags#g" "$fileOut"
+            sed -i "s#~!TITLE!~#$title#g; s#~!TITLEIMAGE!~#$titleImage#g; s#~!TAGS!~#$tags#g; s#~!RELEASEDATE!~#$releaseDate#g;" "$fileOut"
             # TODO Create a wrapper for these.
             echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
             echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
@@ -568,4 +567,3 @@ findSymlinks | copySymlinks
 # TODO Add test flag.
 # TODO Mark test both ways.
 # TODO Make tags clickable.
-# TODO Vimeo.
