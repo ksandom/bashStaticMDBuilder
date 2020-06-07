@@ -489,18 +489,16 @@ copyAssets
 findSubAssets | copySubAssets &
 getDocs | prepDocs
 sortTags
-# find intermediate/related | prepDocs
 deriveLatest
 fillTagCombos
 getLists intermediate/tags | buildList intermediate/tags rss intermediate/feed 10
 getLists intermediate/tags | buildList intermediate/tags html intermediate/list 100000
 getLists intermediate/tagCombos | buildList intermediate/tagCombos html intermediate/list 100000
 getLists intermediate/tags | buildRSSFeeds
-getDocs | buildDocs
 find intermediate/related -type f | buildDocs
+getDocs | buildDocs
 findSymlinks | copySymlinks
 
-# TODO Make build less verbose by default.
 # TODO Do lowercase symlinks.
 # TODO Honour build date.
 # TODO Add test flag.
