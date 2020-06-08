@@ -542,7 +542,10 @@ function copySymlinks
         if [ "$subDir" != '.' ]; then
             mkdir -p "$subDir"
         fi
-        cp -P "../src/site/$symlink" "$symlink"
+        
+        if [ ! -f "$symlink" ]; then
+            cp -P "../src/site/$symlink" "$symlink"
+        fi
     done
 }
 
