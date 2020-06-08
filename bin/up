@@ -6,6 +6,15 @@ cd build
 
 if [ ! -f .test ]; then
     aws s3 sync --delete . "$bucket"
+    
+    cd rss
+    bucketNameOnly="$(echo "$bucket" | cut -b6-)"
+    for feed in *; do
+        aws s3api put-object --bucket "$bucketNameOnly" --key "rss/$feed" --body $feed --content-type "text/xml" --acl "public-read"
+        # TODO Region assumption.
+        curl -I http://${bucketNameOnly}.s3-website-eu-west-1.amazonaws.com/rss/$feed
+    done
+    
 else
     echo "This build has been built with some form of testing enabled. Re-run freshBuild to re-enable uploads."
 fi
