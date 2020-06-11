@@ -1,0 +1,49 @@
+#!/bin/bash
+# Create a new post. 
+
+# Make sure we have myTag.
+if [ "$1" == '' ]; then
+    read -r -p "myTag: " myTag
+else
+    myTag="$1"
+fi
+
+# Sanity checks.
+if [ ! -e "config" ]; then
+    echo "Can't find \"config\". If this is a new installation, please run ./bin/seed." >&2
+    exit 1
+fi
+
+if [ "$(echo "$myTag" | sed 's/ //g')" != "$myTag" ]; then
+    echo "myTag must not contain spaces." >&2
+    exit 1
+fi
+
+# TODO Test for more problematic characters.
+if [ "$(echo "$myTag" | sed 's/[;<>/]//g')" != "$myTag" ]; then
+    echo "myTag must not contain special characters." >&2
+    exit 1
+fi
+
+postDir="src/site/$myTag"
+file="$postDir/README.md"
+echo "myTag=\"$myTag\" postDir=\"$postDir\" file=\"$file\"."
+
+if [ -e "$postDir" ]; then
+    echo "\"$postDir\" already exists." >&2
+    exit 1
+fi
+
+
+
+# Let's do stuff.
+title="$(tr '[:lower:]' '[:upper:]' <<< ${myTag:0:1})${myTag:1}"
+
+mkdir -p "$postDir"
+echo "<!-- MYTAG: $myTag -->
+<!-- PUBLIC: 1 -->
+<!-- RELEASEDATE: $(date +%Y-%m-%d) -->
+<!-- TAGS: whoops -->
+<!-- TITLE: $title -->
+<!-- TITLEIMAGE: whoops.jpg -->
+" > "$file"
