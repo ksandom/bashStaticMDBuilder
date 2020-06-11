@@ -221,7 +221,8 @@ function _buildRSSFeed
     
     [ "$doDebug" -gt 0 ] && echo "Build feed $feedName."
     
-    cat "src/templates/head.rss" \
+    cat "src/templates/head.rss" | \
+        sed "s#~!SITETITLE!~#$siteTitle#g; s#~!SITEDESCRIPTION!~#$siteDescription#g; s#~!SITEURL!~#$siteURL#g; s#~!MYTAG!~#$feedName#g;" \
         > "$fileName"
     
     cat "intermediate/feed/$feedName" >> "$fileName"
@@ -374,7 +375,7 @@ function buildPreview
     local inFile="$1"
     local outFile="$2"
     
-    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | tr '\n' ' ')"
+    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | tr '\n' ' ' | sed 's/[<>/]//g')"
     
     echo "$value" > "$outFile"
 }
