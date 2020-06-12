@@ -1,4 +1,5 @@
 #!/bin/bash
+# This is for when I/you programatically stuff up, and just need everything out of the way to begin the cleanup.
 
 mkdir -p oops
 mv * oops

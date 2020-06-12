@@ -1,4 +1,5 @@
 #!/bin/bash
+# After running ./build. You can run ./testCSS so you can update the CSS and see if on the site in realtime without having to rebuild.
 
 cd build
 rm -Rf css
