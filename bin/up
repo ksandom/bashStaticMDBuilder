@@ -1,12 +1,17 @@
 #!/bin/bash
-# Upload.
+# Upload everything to the bucket.
 
 . config
-cd build
 
-if [ ! -f .test ]; then
+if [ ! -f build/.test ]; then
+    echo "Populating upload cache."
+    rsync --checksum -rulv build/* uploadCache
+    
+    cd uploadCache
+
     aws s3 sync --delete . "$bucket"
     
+    exit 0
     cd rss
     bucketNameOnly="$(echo "$bucket" | cut -b6-)"
     for feed in *; do
