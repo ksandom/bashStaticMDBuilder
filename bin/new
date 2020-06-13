@@ -40,10 +40,10 @@ fi
 title="$(tr '[:lower:]' '[:upper:]' <<< ${myTag:0:1})${myTag:1}"
 
 mkdir -p "$postDir"
-echo "<!-- MYTAG: $myTag -->
-<!-- PUBLIC: 1 -->
-<!-- RELEASEDATE: $(date +%Y-%m-%d) -->
-<!-- TAGS: whoops -->
-<!-- TITLE: $title -->
-<!-- TITLEIMAGE: whoops.jpg -->
+echo "<!-- myTag: $myTag -->
+<!-- public: 1 -->
+<!-- releaseDate: $(date +%Y-%m-%d) -->
+<!-- tags: whoops -->
+<!-- title: $title -->
+<!-- titleImage: whoops.jpg -->
 " > "$file"

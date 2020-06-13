@@ -103,16 +103,16 @@ function _buildDoc
     [ "$doDebug" -gt 0 ] && echo "$stage doc $fileOut."
     
     # Get the document attributes.
-    releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
+    releaseDate="$(getDocAttribute "$srcFile" 'releaseDate')"
     
     if shouldPublish "$releaseDate"; then
-        myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
-        public="$(getDocAttribute "$srcFile" 'PUBLIC')"
-        tags="$(getDocAttribute "$srcFile" 'TAGS')"
+        myTag="$(getDocAttribute "$srcFile" 'myTag')"
+        public="$(getDocAttribute "$srcFile" 'public')"
+        tags="$(getDocAttribute "$srcFile" 'tags')"
         tighterTags="$(echo "$tags" | sed 's/, /,/g')"
         uniqueTags="$(getUniqueTags "$tighterTags")"
-        title="$(getDocAttribute "$srcFile" 'TITLE')"
-        titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
+        title="$(getDocAttribute "$srcFile" 'title')"
+        titleImage="$(getDocAttribute "$srcFile" 'titleImage')"
         titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
         
         if [ "${titleImage::1}" == '/' ]; then
