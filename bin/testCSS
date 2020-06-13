@@ -4,3 +4,4 @@
 cd build
 rm -Rf css
 ln -s ../src/site/css .
+touch "build/.test"

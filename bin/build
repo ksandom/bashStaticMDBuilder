@@ -3,7 +3,15 @@
 
 previewLength=40
 doDebug=0
+doTest=0
+now="$(date +%Y%m%d)"
 . config
+
+if [ "$1" == '--test' ]; then
+    echo "Test mode turned on"
+    touch "build/.test"
+    doTest=1
+fi
 
 function getDocs
 {
@@ -46,6 +54,23 @@ function getDocAttribute
     fi
 }
 
+function shouldPublish
+{
+    # Figure out if we should publish a doc. If testing mode is turned on, then yes. Otherwise it depends on whether we have met the pub date.
+    
+    if [ "$doTest" -eq 1 ]; then
+        return 0
+    else
+        local pubDate="$(echo "$1" | sed 's/-//g')"
+        
+        if [ "$now" -lt "$pubDate" ]; then
+            return 1
+        else
+            return 0
+        fi
+    fi
+}
+
 function prepDocs
 {
     cd build
@@ -78,49 +103,54 @@ function _buildDoc
     [ "$doDebug" -gt 0 ] && echo "$stage doc $fileOut."
     
     # Get the document attributes.
-    myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
-    public="$(getDocAttribute "$srcFile" 'PUBLIC')"
     releaseDate="$(getDocAttribute "$srcFile" 'RELEASEDATE')"
-    tags="$(getDocAttribute "$srcFile" 'TAGS')"
-    tighterTags="$(echo "$tags" | sed 's/, /,/g')"
-    uniqueTags="$(getUniqueTags "$tighterTags")"
-    title="$(getDocAttribute "$srcFile" 'TITLE')"
-    titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
-    titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
     
-    if [ "${titleImage::1}" == '/' ]; then
-        titleImagePath="../src/site$titleImage"
-        titleImageThumbnailPath="$titleImageThumbnail"
+    if shouldPublish "$releaseDate"; then
+        myTag="$(getDocAttribute "$srcFile" 'MYTAG')"
+        public="$(getDocAttribute "$srcFile" 'PUBLIC')"
+        tags="$(getDocAttribute "$srcFile" 'TAGS')"
+        tighterTags="$(echo "$tags" | sed 's/, /,/g')"
+        uniqueTags="$(getUniqueTags "$tighterTags")"
+        title="$(getDocAttribute "$srcFile" 'TITLE')"
+        titleImage="$(getDocAttribute "$srcFile" 'TITLEIMAGE')"
+        titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
+        
+        if [ "${titleImage::1}" == '/' ]; then
+            titleImagePath="../src/site$titleImage"
+            titleImageThumbnailPath="$titleImageThumbnail"
+        else
+            titleImagePath="../src/site/$myTag/$titleImage"
+            titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
+        fi
+        
+        case "$stage" in
+            "Prep")
+                # Build intermediate stuff.
+                addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+                saveTagCombo "$uniqueTags"
+                buildPreview "$srcFile" "../intermediate/preview/$myTag"
+                buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
+                buildItem "$myTag" "rss" "$uniqueTags"
+                makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
+            ;;
+            "Build")
+                # Build the doc.
+                cat ../src/templates/head.html > "$fileOut"
+                cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
+                sed -i "s#~!TITLE!~#$title#g; s#~!TITLEIMAGE!~#$titleImage#g; s#~!TAGS!~#$tags#g; s#~!RELEASEDATE!~#$releaseDate#g;" "$fileOut"
+                # TODO Create a wrapper for these.
+                echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
+                echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
+                getTagBar "$uniqueTags" "html" >> "$fileOut"
+                echo "</DIV>" >> "$fileOut"
+                cat "../intermediate/list/$uniqueTags" >> "$fileOut"
+                echo "</DIV>" >> "$fileOut"
+                cat ../src/templates/foot.html >> "$fileOut"
+            ;;
+        esac
     else
-        titleImagePath="../src/site/$myTag/$titleImage"
-        titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
+        echo "Not publishing \"$srcFile\"."
     fi
-    
-    case "$stage" in
-        "Prep")
-            # Build intermediate stuff.
-            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
-            saveTagCombo "$uniqueTags"
-            buildPreview "$srcFile" "../intermediate/preview/$myTag"
-            buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
-            buildItem "$myTag" "rss" "$uniqueTags"
-            makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
-        ;;
-        "Build")
-            # Build the doc.
-            cat ../src/templates/head.html > "$fileOut"
-            cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
-            sed -i "s#~!TITLE!~#$title#g; s#~!TITLEIMAGE!~#$titleImage#g; s#~!TAGS!~#$tags#g; s#~!RELEASEDATE!~#$releaseDate#g;" "$fileOut"
-            # TODO Create a wrapper for these.
-            echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
-            echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
-            getTagBar "$uniqueTags" "html" >> "$fileOut"
-            echo "</DIV>" >> "$fileOut"
-            cat "../intermediate/list/$uniqueTags" >> "$fileOut"
-            echo "</DIV>" >> "$fileOut"
-            cat ../src/templates/foot.html >> "$fileOut"
-        ;;
-    esac
 }
 
 function buildDocs
