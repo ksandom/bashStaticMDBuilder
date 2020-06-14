@@ -137,7 +137,7 @@ function _buildDoc
                 # Build the doc.
                 cat ../src/templates/head.html > "$fileOut"
                 cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
-                sed -i "s#~!TITLE!~#$title#g; s#~!TITLEIMAGE!~#$titleImage#g; s#~!TAGS!~#$tags#g; s#~!RELEASEDATE!~#$releaseDate#g;" "$fileOut"
+                sed -i "s#~!title!~#$title#g; s#~!titleImage!~#$titleImage#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g;" "$fileOut"
                 # TODO Create a wrapper for these.
                 echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
                 echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
@@ -174,10 +174,10 @@ function buildItem
     local tagBar="$(getTagBar "$uniqueTags" "html")"
     
     cat "../src/templates/item.$type" | \
-        sed "s#~!TITLE!~#$title#g; s#~!CONTENT!~#$(cat "../intermediate/preview/$tag")#g; s#~!RELEASEDATE!~#$releaseDate#g; s#~!SITEURL!~#$siteURL#g; s#~!MYTAG!~#$tag#g; s#~!THUMBNAIL!~#$thumbnail#g" \
+        sed "s#~!title!~#$title#g; s#~!content!~#$(cat "../intermediate/preview/$tag")#g; s#~!releaseDate!~#$releaseDate#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$tag#g; s#~!thumbnail!~#$thumbnail#g" \
         > "$itemFileOut"
     
-    replaceLine "$itemFileOut" '~!ITEMTAGS!~' "$tagBar"
+    replaceLine "$itemFileOut" '~!itemTags!~' "$tagBar"
 }
 
 function generateRelated
@@ -189,7 +189,7 @@ function generateRelated
     
     if [ ! -e "$outputFile" ]; then
         mkdir -p "$outputDir"
-        cat "../../src/templates/relatedTag.md" | sed "s#~!MYTAG!~#$tag#g" > "$outputFile"
+        cat "../../src/templates/relatedTag.md" | sed "s#~!myTag!~#$tag#g" > "$outputFile"
     fi
 }
 
@@ -252,7 +252,7 @@ function _buildRSSFeed
     [ "$doDebug" -gt 0 ] && echo "Build feed $feedName."
     
     cat "src/templates/head.rss" | \
-        sed "s#~!SITETITLE!~#$siteTitle#g; s#~!SITEDESCRIPTION!~#$siteDescription#g; s#~!SITEURL!~#$siteURL#g; s#~!MYTAG!~#$feedName#g;" \
+        sed "s#~!siteTitle!~#$siteTitle#g; s#~!siteDescription!~#$siteDescription#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$feedName#g;" \
         > "$fileName"
     
     cat "intermediate/feed/$feedName" >> "$fileName"
@@ -282,7 +282,7 @@ function buildTagBar
         # echo "DEBUG $tagsContents" >&2
         
         cat "../src/templates/tagBar.$type" | \
-            sed "s#~!TAGS!~#$tagsContents#g" \
+            sed "s#~!tags!~#$tagsContents#g" \
             > "$tagBarFile"
     fi
 }
@@ -314,7 +314,7 @@ function buildTag
     local tagFileName="$3"
     
     cat "../src/templates/tag.$type" | \
-        sed "s#~!TAG!~#$tag#g" \
+        sed "s#~!tag!~#$tag#g" \
         > "$tagFileName"
     
 }
