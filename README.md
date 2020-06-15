@@ -101,6 +101,8 @@ If you want to do some CSS work, you can run `./bin/testCSS`. This will create s
 ./bin/testCSS
 ```
 
+You can view the build by running `./bin/test`. This will run a tiny HTTP server to show you what the build looks like. This does not modify the build, so can be used at any time, and `./bin/up` will still work afterwards. So this is useable and highly recommended before uploading to your website.
+
 ### Uploading it
 
 This assumes you have the [aws CLI](https://docs.aws.amazon.com/cli/latest/userguide/cli-chap-install.html) installed and working and the permissions for accessing the S3 bucket for your website.
