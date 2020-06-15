@@ -62,8 +62,9 @@ function shouldPublish
         return 0
     else
         local pubDate="$(echo "$1" | sed 's/-//g')"
+        local public="$2"
         
-        if [ "$now" -lt "$pubDate" ]; then
+        if [ "$now" -lt "$pubDate" ] && [ "$public" == '1' ]; then
             return 1
         else
             return 0
@@ -104,10 +105,10 @@ function _buildDoc
     
     # Get the document attributes.
     releaseDate="$(getDocAttribute "$srcFile" 'releaseDate')"
+    public="$(getDocAttribute "$srcFile" 'public')"
     
-    if shouldPublish "$releaseDate"; then
+    if shouldPublish "$releaseDate" "$public"; then
         myTag="$(getDocAttribute "$srcFile" 'myTag')"
-        public="$(getDocAttribute "$srcFile" 'public')"
         tags="$(getDocAttribute "$srcFile" 'tags')"
         tighterTags="$(echo "$tags" | sed 's/, /,/g')"
         uniqueTags="$(getUniqueTags "$tighterTags")"
