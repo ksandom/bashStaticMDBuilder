@@ -97,60 +97,64 @@ function _buildDoc
         srcFile="../src/site/$fileIn"
     fi
     
-    # Prep
-    assertDir "$fileIn"
-    fileOut="$(getOutName "$fileIn")"
-    
-    [ "$doDebug" -gt 0 ] && echo "$stage doc $fileOut."
-    
-    # Get the document attributes.
-    releaseDate="$(getDocAttribute "$srcFile" 'releaseDate')"
-    public="$(getDocAttribute "$srcFile" 'public')"
-    
-    if shouldPublish "$releaseDate" "$public"; then
-        myTag="$(getDocAttribute "$srcFile" 'myTag')"
-        tags="$(getDocAttribute "$srcFile" 'tags')"
-        tighterTags="$(echo "$tags" | sed 's/, /,/g')"
-        uniqueTags="$(getUniqueTags "$tighterTags")"
-        title="$(getDocAttribute "$srcFile" 'title')"
-        titleImage="$(getDocAttribute "$srcFile" 'titleImage')"
-        titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
+    if [ -e "$srcFile" ]; then
+        # Prep
+        assertDir "$fileIn"
+        fileOut="$(getOutName "$fileIn")"
         
-        if [ "${titleImage::1}" == '/' ]; then
-            titleImagePath="../src/site$titleImage"
-            titleImageThumbnailPath="$titleImageThumbnail"
+        [ "$doDebug" -gt 0 ] && echo "$stage doc $fileOut."
+        
+        # Get the document attributes.
+        releaseDate="$(getDocAttribute "$srcFile" 'releaseDate')"
+        public="$(getDocAttribute "$srcFile" 'public')"
+        
+        if shouldPublish "$releaseDate" "$public"; then
+            myTag="$(getDocAttribute "$srcFile" 'myTag')"
+            tags="$(getDocAttribute "$srcFile" 'tags')"
+            tighterTags="$(echo "$tags" | sed 's/, /,/g')"
+            uniqueTags="$(getUniqueTags "$tighterTags")"
+            title="$(getDocAttribute "$srcFile" 'title')"
+            titleImage="$(getDocAttribute "$srcFile" 'titleImage')"
+            titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
+            
+            if [ "${titleImage::1}" == '/' ]; then
+                titleImagePath="../src/site$titleImage"
+                titleImageThumbnailPath="$titleImageThumbnail"
+            else
+                titleImagePath="../src/site/$myTag/$titleImage"
+                titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
+            fi
+            
+            case "$stage" in
+                "Prep")
+                    # Build intermediate stuff.
+                    addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+                    saveTagCombo "$uniqueTags"
+                    buildPreview "$srcFile" "../intermediate/preview/$myTag"
+                    buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
+                    buildItem "$myTag" "rss" "$uniqueTags"
+                    makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
+                ;;
+                "Build")
+                    # Build the doc.
+                    cat ../src/templates/head.html > "$fileOut"
+                    cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
+                    sed -i "s#~!title!~#$title#g; s#~!titleImage!~#$titleImage#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g;" "$fileOut"
+                    # TODO Create a wrapper for these.
+                    echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
+                    echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
+                    getTagBar "$uniqueTags" "html" >> "$fileOut"
+                    echo "</DIV>" >> "$fileOut"
+                    cat "../intermediate/list/$uniqueTags" >> "$fileOut"
+                    echo "</DIV>" >> "$fileOut"
+                    cat ../src/templates/foot.html >> "$fileOut"
+                ;;
+            esac
         else
-            titleImagePath="../src/site/$myTag/$titleImage"
-            titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
+            echo "Not publishing \"$srcFile\"."
         fi
-        
-        case "$stage" in
-            "Prep")
-                # Build intermediate stuff.
-                addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
-                saveTagCombo "$uniqueTags"
-                buildPreview "$srcFile" "../intermediate/preview/$myTag"
-                buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
-                buildItem "$myTag" "rss" "$uniqueTags"
-                makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
-            ;;
-            "Build")
-                # Build the doc.
-                cat ../src/templates/head.html > "$fileOut"
-                cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
-                sed -i "s#~!title!~#$title#g; s#~!titleImage!~#$titleImage#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g;" "$fileOut"
-                # TODO Create a wrapper for these.
-                echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
-                echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
-                getTagBar "$uniqueTags" "html" >> "$fileOut"
-                echo "</DIV>" >> "$fileOut"
-                cat "../intermediate/list/$uniqueTags" >> "$fileOut"
-                echo "</DIV>" >> "$fileOut"
-                cat ../src/templates/foot.html >> "$fileOut"
-            ;;
-        esac
     else
-        echo "Not publishing \"$srcFile\"."
+        echo "Could not find \"$srcFile\" during $stage."
     fi
 }
 
@@ -200,18 +204,20 @@ function replaceLine
     local search="$2"
     local replace="$3"
     
-    rm -f "$fileName.replace"
-    touch "$fileName.replace"
-    while read -r line; do
-        if [ "$line" != "$search" ]; then
-            echo "$line" >> "$fileName.replace"
-        else
-            echo "$replace" >> "$fileName.replace"
-        fi
-    done < <(cat "$fileName")
-    
-    rm "$fileName"
-    mv "$fileName.replace" "$fileName"
+    if [ -e "$fileName" ]; then
+        rm -f "$fileName.replace"
+        touch "$fileName.replace"
+        while read -r line; do
+            if [ "$line" != "$search" ]; then
+                echo "$line" >> "$fileName.replace"
+            else
+                echo "$replace" >> "$fileName.replace"
+            fi
+        done < <(cat "$fileName")
+        
+        rm "$fileName"
+        mv "$fileName.replace" "$fileName"
+    fi
 }
 
 function getImageName
@@ -520,7 +526,9 @@ function _buildList
     filePath="$destination/$feed"
     rm -f "$filePath"
     while read -r releaseDate item; do
-        cat intermediate/$type/$item >> "$filePath"
+        if [ -e "intermediate/$type/$item" ]; then
+            cat "intermediate/$type/$item" >> "$filePath"
+        fi
     done < <(cat "$listOrigin/$feed")
 }
 
@@ -598,7 +606,3 @@ getDocs | buildDocs
 findSymlinks | copySymlinks
 
 # TODO Do lowercase symlinks.
-# TODO Honour build date.
-# TODO Add test flag.
-# TODO Mark test both ways.
-# TODO Make tags clickable.
