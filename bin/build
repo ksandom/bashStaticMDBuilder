@@ -589,8 +589,28 @@ function copySymlinks
     done
 }
 
+function actions
+{
+    local actionsDir="$1"
+    
+    if [ -e "$actionsDir" ]; then
+        echo "Running actions in \"$actionsDir\"."
+        for action in "$actionsDir"/*; do
+            file="$action"
+            echo "  Running \"$file\"."
+            startDir="$(pwd)"
+            $file | sed 's/^/    /g'
+            cd "$startDir"
+        done
+    else
+        echo "No actions in \"$actionsDir\"."
+    fi
+}
+
+
 rm -Rf ../intermediate
 mkdir -p build
+actions src/actions/build-pre
 copyAssets
 findSubAssets | copySubAssets &
 getDocs | prepDocs
@@ -604,5 +624,6 @@ getLists intermediate/tags | buildRSSFeeds
 find intermediate/related -type f | buildDocs
 getDocs | buildDocs
 findSymlinks | copySymlinks
+actions src/actions/build-post
 
 # TODO Do lowercase symlinks.

@@ -1,0 +1,7 @@
+#!/bin/bash
+# Provide a mechanism for the old RSS feeds.
+# With this enabled, you can point requests to old RSS feeds to /legacyRSS/.
+# This is useful when your new site doesn't support the old RSS feeds. Eg They were dynamically generated via something like PHP.
+
+mkdir -p build/legacyRSS
+cp build/rss/all.rss build/legacyRSS/index.html

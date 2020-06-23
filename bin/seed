@@ -4,7 +4,8 @@
 installPathBin="$(dirname "$0")"
 installPath="$(dirname "$installPathBin")"
 
-ln -s "$installPath"/bin .
+ln -sf "$installPath"/bin .
+ln -sf "$installPath"/actionsAvailable .
 mkdir -p build src/{templates,site}
 
 if [ ! -e "config" ]; then
