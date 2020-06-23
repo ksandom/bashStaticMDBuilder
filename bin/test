@@ -1,6 +1,9 @@
 #!/bin/bash
 # Test the build.
 
+testPort=8000
+. config
+
 cd build
-python -m SimpleHTTPServer 8000
+python -m SimpleHTTPServer "$testPort"
 

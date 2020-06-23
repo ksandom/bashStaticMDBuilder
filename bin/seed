@@ -10,8 +10,8 @@ mkdir -p build src/{templates,site}
 if [ ! -e "config" ]; then
     echo "# The essentials.
 domain=\"www.example.com\"
-siteURL=\"http://$domain\"
-bucket=\"s3://$domain\"
+siteURL=\"http://\$domain\"
+bucket=\"s3://\$domain\"
 
 # The basics.
 siteTitle=\"Example Site\"
@@ -27,7 +27,12 @@ useableMaxSize=1920
 
 # Recommended items.
 previewLength=30
+
+# Testing
+testPort=8000
 " > "config"
 fi
 
 echo "Make sure you edit \`config\` before trying to \`./bin/build\` or \`./bin/freshBuild\` your site."
+
+# TODO Handle templates.
