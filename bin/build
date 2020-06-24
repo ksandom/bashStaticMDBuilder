@@ -78,7 +78,17 @@ function prepDocs
     mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed,tagBar/tags,tagBar/bars,related} rss
     echo "Prep."
     while read -r fileIn; do
-        _buildDoc "$fileIn" "Prep" &
+        _buildDoc "$fileIn" "Prep"
+    done
+    wait
+}
+
+function buildDocs
+{
+    cd build
+    echo "Build."
+    while read -r fileIn; do
+        _buildDoc "$fileIn" "Build" &
     done
     wait
 }
@@ -156,16 +166,6 @@ function _buildDoc
     else
         echo "Could not find \"$srcFile\" during $stage."
     fi
-}
-
-function buildDocs
-{
-    cd build
-    echo "Build."
-    while read -r fileIn; do
-        _buildDoc "$fileIn" "Build" &
-    done
-    wait
 }
 
 function buildItem
