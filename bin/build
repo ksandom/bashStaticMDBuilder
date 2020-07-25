@@ -130,9 +130,11 @@ function _buildDoc
             if [ "${titleImage::1}" == '/' ]; then
                 titleImagePath="../src/site$titleImage"
                 titleImageThumbnailPath="$titleImageThumbnail"
+                titleImageAbsolutePath="$titleImage"
             else
                 titleImagePath="../src/site/$myTag/$titleImage"
                 titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
+                titleImageAbsolutePath="/$myTag/$titleImage"
             fi
             
             case "$stage" in
@@ -149,7 +151,7 @@ function _buildDoc
                     # Build the doc.
                     cat ../src/templates/head.html > "$fileOut"
                     cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
-                    sed -i "s#~!title!~#$title#g; s#~!titleImage!~#$titleImage#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g;" "$fileOut"
+                    sed -i "s#~!title!~#$title#g; s#~!titleImage!~#$titleImageAbsolutePath#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g;" "$fileOut"
                     # TODO Create a wrapper for these.
                     echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
                     echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
@@ -454,7 +456,7 @@ function images
             fi
             
             if [ -f "$myTag/$previewFile" ] && [ -f "$myTag/$imageFile" ] ; then
-                echo "<p><a href=\"$imageFile\" target=\"_blank\"><img alt=\"$description\" src=\"$previewFile\" /></a><br>Above: $description</p>"
+                echo "<p class=\"insertedImageWrapper\"><a href=\"$imageFile\" target=\"_blank\"><img alt=\"$description\" class=\"insertedImage\" src=\"$previewFile\" /></a><br>Above: $description</p>"
             else
                 echo "Could not find \"$myTag/$previewFile\" & \"$myTag/$imageFile\" in \"$(pwd)\". So this has been skipped in the final output." >&2
             fi
