@@ -5,5 +5,5 @@ testPort=8000
 . config
 
 cd build
-python -m SimpleHTTPServer "$testPort"
+python -m http.server "$testPort"
 
