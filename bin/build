@@ -189,7 +189,7 @@ function buildItem
 
 function generateRelated
 {
-    # Thisi is assumed to be called from inside intermediate/tags
+    # This is assumed to be called from inside intermediate/tags
     local tag="$1"
     local outputDir="../related/$tag"
     local outputFile="$outputDir/README.md"
