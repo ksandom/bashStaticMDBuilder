@@ -2,6 +2,8 @@
 # This is for when I/you programatically stuff up, and just need everything out of the way to begin the cleanup.
 
 mkdir -p oops
-mv * oops
+mv ./* oops
+
+# shellcheck disable=SC2164
 cd oops
 mv README.md config bin src ..

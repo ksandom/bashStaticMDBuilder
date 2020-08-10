@@ -14,7 +14,7 @@ if [ ! -e "config" ]; then
     exit 1
 fi
 
-if [ "$(echo "$myTag" | sed 's/ //g')" != "$myTag" ]; then
+if [ "${myTag// /}" != "$myTag" ]; then
     echo "myTag must not contain spaces." >&2
     exit 1
 fi
@@ -37,7 +37,7 @@ fi
 
 
 # Let's do stuff.
-title="$(tr '[:lower:]' '[:upper:]' <<< ${myTag:0:1})${myTag:1}"
+title="$(tr '[:lower:]' '[:upper:]' <<< "${myTag:0:1}")${myTag:1}"
 
 mkdir -p "$postDir"
 echo "<!-- myTag: $myTag -->

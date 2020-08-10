@@ -1,7 +1,12 @@
 #!/bin/bash
 # After running ./build. You can run ./testCSS so you can update the CSS and see if on the site in realtime without having to rebuild.
 
-cd build
+if [ ! -e config ] || [ ! -e build ]; then
+    echo "Expected to see a build directory. Most likely you are in the wrong directory and just need to get into the directory where you'll see this, along with the \"config\" file and the src directory." >&2
+    exit 1
+fi
+
+cd build || exit 1
 rm -Rf css
 ln -s ../src/site/css .
 touch ".test"

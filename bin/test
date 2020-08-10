@@ -2,8 +2,15 @@
 # Test the build.
 
 testPort=8000
-. config
 
-cd build
+if [ ! -e config ] || [ ! -e build ]; then
+    echo "Expected to see a \"config\" file, and a build directory. Most likely you are in the wrong directory and just need to get into the directory where you'll see these and the src directory." >&2
+    exit 1
+fi
+
+# shellcheck source=../config/config.example.sh
+. config || exit 1
+
+cd build || exit 1
 python -m http.server "$testPort"
 

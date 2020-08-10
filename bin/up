@@ -1,23 +1,30 @@
 #!/bin/bash
 # Upload everything to the bucket.
 
-. config
+if [ ! -e config ] || [ ! -e build ]; then
+    echo "Expected to see a \"config\" file, and a build directory. Most likely you are in the wrong directory and just need to get into the directory where you'll see these and the src directory." >&2
+    exit 1
+fi
+
+# shellcheck source=../config/config.example.sh
+. config || exit 1
 
 if [ ! -f build/.test ]; then
     echo "Populating upload cache."
+    mkdir -p uploadCache
     rsync --checksum -rulv build/* uploadCache
     
-    cd uploadCache
+    cd uploadCache || exit 1
 
     aws s3 sync --delete . "$bucket"
     
     exit 0
-    cd rss
+    cd rss || exit 1
     bucketNameOnly="$(echo "$bucket" | cut -b6-)"
     for feed in *; do
-        aws s3api put-object --bucket "$bucketNameOnly" --key "rss/$feed" --body $feed --content-type "text/xml" --acl "public-read"
+        aws s3api put-object --bucket "$bucketNameOnly" --key "rss/$feed" --body "$feed" --content-type "text/xml" --acl "public-read"
         # TODO Region assumption.
-        curl -I http://${bucketNameOnly}.s3-website-eu-west-1.amazonaws.com/rss/$feed
+        curl -I "http://${bucketNameOnly}.s3-website-eu-west-1.amazonaws.com/rss/$feed"
     done
     
 else
