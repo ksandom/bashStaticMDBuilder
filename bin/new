@@ -46,4 +46,5 @@ echo "<!-- myTag: $myTag -->
 <!-- tags: whoops -->
 <!-- title: $title -->
 <!-- titleImage: whoops.jpg -->
+<!-- description: -->
 " > "$file"

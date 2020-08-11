@@ -44,13 +44,24 @@ function getDocAttribute
 {
     local fileName="$1"
     local attribute="$2"
+    local default="$3"
     
     data="$(grep "<!-- $attribute: " "$fileName" | sed 's/^.*<!-- //g;s/ -->$//g' | cut -d\  -f2-)"
     
-    if [ "$data" != '' ]; then
+    if [ "$data" != '' ]; then # We have the declaration.
         echo "$data"
     else
-        echo "Didn't get any value for document attribute '$attribute' in $fileName ($(pwd))." >&2
+        case "$default" in
+            "") # No default, and no declaration. Complain.
+                echo "Didn't get any value for document attribute '$attribute' in $fileName ($(pwd))." >&2
+            ;;
+            '-') # We don't need anything. Just output nothing.
+                echo
+            ;;
+            *) # We have a default. Fall back to that.
+                echo "$default"
+            ;;
+        esac
     fi
 }
 
@@ -126,6 +137,8 @@ function _buildDoc
             title="$(getDocAttribute "$srcFile" 'title')"
             titleImage="$(getDocAttribute "$srcFile" 'titleImage')"
             titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
+            [ -e "../intermediate/preview/$myTag" ] && preview="$(cat "../intermediate/preview/$myTag")"
+            description="$(getDocAttribute "$srcFile" 'description' "${preview}...")"
             
             if [ "${titleImage::1}" == '/' ]; then
                 titleImagePath="../src/site$titleImage"
@@ -151,14 +164,14 @@ function _buildDoc
                     # Build the doc.
                     cat ../src/templates/head.html > "$fileOut"
                     cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
-                    sed -i "s#~!title!~#$title#g; s#~!titleImage!~#$titleImageAbsolutePath#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g;" "$fileOut"
-                    # TODO Create a wrapper for these.
-                    echo "<DIV CLASS=\"recommendedItems\">" >> "$fileOut"
-                    echo "<DIV CLASS=\"myTags\">" >> "$fileOut"
+                    templateFile "$fileOut"
+                    
+                    openDiv "recommendedItems" >> "$fileOut"
+                    openDiv "myTags" "  " >> "$fileOut"
                     getTagBar "$uniqueTags" "html" >> "$fileOut"
-                    echo "</DIV>" >> "$fileOut"
+                    closeDiv "myTags" "  " >> "$fileOut"
                     cat "../intermediate/list/$uniqueTags" >> "$fileOut"
-                    echo "</DIV>" >> "$fileOut"
+                    closeDiv "recommendedItems" >> "$fileOut"
                     cat ../src/templates/foot.html >> "$fileOut"
                 ;;
             esac
@@ -179,12 +192,44 @@ function buildItem
     local thumbnail="$4"
     local itemFileOut="../intermediate/$type/$tag"
     local tagBar="$(getTagBar "$uniqueTags" "html")"
+    local content="$(cat "../intermediate/preview/$tag")"
     
-    cat "../src/templates/item.$type" | \
-        sed "s#~!title!~#$title#g; s#~!content!~#$(cat "../intermediate/preview/$tag")#g; s#~!releaseDate!~#$releaseDate#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$tag#g; s#~!thumbnail!~#$thumbnail#g" \
-        > "$itemFileOut"
+    cat "../src/templates/item.$type" | templatePipe > "$itemFileOut"
     
     replaceLine "$itemFileOut" '~!itemTags!~' "$tagBar"
+}
+
+function generateTemplateConfig
+{
+    echo "s#~!title!~#$title#g; s#~!titleImage!~#$titleImageAbsolutePath#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g; s#~!description!~#$description#g; s#~!siteTitle!~#$siteTitle#g; s#~!siteDescription!~#$siteDescription#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$feedName#g; s#~!title!~#$title#g; s#~!content!~#$content#g; s#~!releaseDate!~#$releaseDate#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$tag#g; s#~!thumbnail!~#$thumbnail#g"
+}
+
+function templatePipe
+{
+    sed "$(generateTemplateConfig)"
+}
+
+function templateFile
+{
+    local fileName="$1"
+    
+    sed "$(generateTemplateConfig)" -i "$fileName"
+}
+
+function openDiv
+{
+    local divName="$1"
+    local indentation="$2"
+    
+    echo -e "\n$indentation<DIV CLASS=\"$divName\">"
+}
+
+function closeDiv
+{
+    local divName="$1"
+    local indentation="$2"
+    
+    echo -e "\n$indentation</DIV><!-- Close DIV \"$divName\" --> "
 }
 
 function generateRelated
@@ -260,9 +305,7 @@ function _buildRSSFeed
     
     [ "$doDebug" -gt 0 ] && echo "Build feed $feedName."
     
-    cat "src/templates/head.rss" | \
-        sed "s#~!siteTitle!~#$siteTitle#g; s#~!siteDescription!~#$siteDescription#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$feedName#g;" \
-        > "$fileName"
+    cat "src/templates/head.rss" | templatePipe > "$fileName"
     
     cat "intermediate/feed/$feedName" >> "$fileName"
     
@@ -439,6 +482,7 @@ function onlyWords
 function images
 {
     local myTag="$1"
+    local IFS="\n"
     
     while read -r line;do
         if [ "${line::2}" == '![' ]; then
@@ -464,6 +508,8 @@ function images
             echo "$line"
         fi
     done
+    
+    IFS=" "
 }
 
 function imageMaxSize
@@ -471,13 +517,14 @@ function imageMaxSize
     local imageInFile="$1"
     local imageOutFile="$2"
     local imageMaxSize="$3"
+    local IFS=" "
     
     if [ -e "$imageOutFile" ]; then
         true # Don't do anything if we already have it. This can be re-done by doing a ./bin/freshBuild
     elif [ -e "$imageInFile" ]; then
         read x y < <(identify -format "%w %h" "$imageInFile")
         
-        if [ $x -gt $y ]; then
+        if [ "$x" -gt "$y" ]; then
             if [ "$x" -gt "$imageMaxSize" ]; then
                 let newY=$y*$imageMaxSize/$x
                 convert -resize "${imageMaxSize}x${newY}" "$imageInFile" "$imageOutFile"
@@ -499,6 +546,8 @@ function imageMaxSize
 
 function videos
 {
+    local IFS="\n"
+    
     while read -r line; do
         if [ "${line::29}" == "https://www.youtube.com/watch" ] || [ "${line::28}" == "http://www.youtube.com/watch" ]; then
             id="$(echo "$line" | sed 's/^.*v=//g;s/&.*$//g')"
@@ -510,6 +559,8 @@ function videos
             echo "$line"
         fi
     done
+    
+    IFS=" "
 }
 
 function getLists
