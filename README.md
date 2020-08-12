@@ -101,7 +101,7 @@ You can run a simple web server locally to see that it is doing what you expect.
 
 It will tell you what port is being used when it is run. You an configure this in the config file.
 
-#### Test/ aspects of it
+#### Test aspects of it
 
 If you want to test a post that has not yet been released, you can do `--test` to show all unreleased posts. `./bin/up` will refuse to run in this state to prevent you from accidentally releasing something before you are ready. See "Uploading it" below for more information.
 ```bash
