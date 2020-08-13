@@ -167,10 +167,30 @@ function _buildDoc
                     templateFile "$fileOut"
                     
                     openDiv "recommendedItems" >> "$fileOut"
+                    
                     openDiv "myTags" "  " >> "$fileOut"
                     getTagBar "$uniqueTags" "html" >> "$fileOut"
                     closeDiv "myTags" "  " >> "$fileOut"
+                    
+                    if postReferences "$myTag" "$uniqueTags"; then
+                        openDiv "postReferences" "  " >> "$fileOut"
+                        heading 2 "This post references" >> "$fileOut"
+                        cat "../intermediate/list/$myTag.references" >> "$fileOut"
+                        closeDiv "postReferences" "  " >> "$fileOut"
+                    fi
+                    
+                    if postReferencedBy "$myTag" "$uniqueTags"; then
+                        openDiv "postReferencedBy" "  " >> "$fileOut"
+                        heading 2 "This post is referenced by" >> "$fileOut"
+                        cat "../intermediate/list/$myTag.postReferencedBy" >> "$fileOut"
+                        closeDiv "postReferencedBy" "  " >> "$fileOut"
+                    fi
+                    
+                    openDiv "sameTags" "  " >> "$fileOut"
+                    heading 2 "Posts using the same tags" >> "$fileOut"
                     cat "../intermediate/list/$uniqueTags" >> "$fileOut"
+                    closeDiv "sameTags" "  " >> "$fileOut"
+                    
                     closeDiv "recommendedItems" >> "$fileOut"
                     cat ../src/templates/foot.html >> "$fileOut"
                 ;;
@@ -199,9 +219,63 @@ function buildItem
     replaceLine "$itemFileOut" '~!itemTags!~' "$tagBar"
 }
 
+function postReferences
+{
+    local myTag="$1"
+    local tags="$2"
+    
+    cd ..
+    IFS=","
+    result=0
+    mkdir -p "intermediate/postReferences"
+    rm -f "intermediate/postReferences/$myTag.references"
+    
+    for tag in $tags; do
+        if [ "$tag" != "$myTag" ]; then
+            if [ -e "src/site/$tag" ]; then
+                echo "unimportantDate $tag" >> "intermediate/postReferences/$myTag.references"
+                let result=$result+1
+            fi
+        fi
+    done
+    IFS=" "
+    
+    if [ "$result" -gt 0 ]; then
+        echo "$myTag.references" | buildList intermediate/postReferences html intermediate/list 100000
+        cd ~-
+        return 0
+    else
+        cd ~-
+        return 1
+    fi
+}
+
+function postReferencedBy
+{
+    local myTag="$1"
+    local tags="$2"
+    
+    cd ..
+    IFS=","
+    result=0
+    mkdir -p "intermediate/postReferencedBy"
+    rm -f "intermediate/postReferencedBy/$myTag.postReferencedBy"
+    
+    if grep -v "$myTag" "intermediate/tags/$myTag" >> "intermediate/postReferencedBy/$myTag.postReferencedBy"; then
+        IFS=" "
+        echo "$myTag.postReferencedBy" | buildList intermediate/postReferencedBy html intermediate/list 100000
+        cd ~-
+        return 0
+    else
+        IFS=" "
+        cd ~-
+        return 1
+    fi
+}
+
 function generateTemplateConfig
 {
-    echo "s#~!title!~#$title#g; s#~!titleImage!~#$titleImageAbsolutePath#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g; s#~!description!~#$description#g; s#~!siteTitle!~#$siteTitle#g; s#~!siteDescription!~#$siteDescription#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$feedName#g; s#~!title!~#$title#g; s#~!content!~#$content#g; s#~!releaseDate!~#$releaseDate#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$tag#g; s#~!thumbnail!~#$thumbnail#g"
+    echo "s#~!title!~#$title#g; s#~!titleImage!~#$titleImageAbsolutePath#g; s#~!tags!~#$tags#g; s#~!releaseDate!~#$releaseDate#g; s#~!description!~#$description#g; s#~!siteTitle!~#$siteTitle#g; s#~!siteDescription!~#$siteDescription#g; s#~!siteURL!~#$siteURL#g; s#~!title!~#$title#g; s#~!content!~#$content#g; s#~!releaseDate!~#$releaseDate#g; s#~!siteURL!~#$siteURL#g; s#~!myTag!~#$tag#g; s#~!thumbnail!~#$thumbnail#g"
 }
 
 function templatePipe
@@ -230,6 +304,14 @@ function closeDiv
     local indentation="$2"
     
     echo -e "\n$indentation</DIV><!-- Close DIV \"$divName\" --> "
+}
+
+function heading
+{
+    local level="$1"
+    local value="$2"
+    
+    echo "<H$level>$value</H2>"
 }
 
 function generateRelated
@@ -305,6 +387,7 @@ function _buildRSSFeed
     
     [ "$doDebug" -gt 0 ] && echo "Build feed $feedName."
     
+    local tag="$feedName"
     cat "src/templates/head.rss" | templatePipe > "$fileName"
     
     cat "intermediate/feed/$feedName" >> "$fileName"
@@ -595,11 +678,14 @@ function _buildList
     
     filePath="$destination/$feed"
     rm -f "$filePath"
-    while read -r releaseDate item; do
-        if [ -e "intermediate/$type/$item" ]; then
-            cat "intermediate/$type/$item" >> "$filePath"
-        fi
-    done < <(cat "$listOrigin/$feed")
+    if [ -e "$listOrigin/$feed" ]; then
+        while read -r releaseDate item; do
+            # TODO Test for item==feed
+            if [ -e "intermediate/$type/$item" ]; then
+                cat "intermediate/$type/$item" >> "$filePath"
+            fi
+        done < <(cat "$listOrigin/$feed")
+    fi
 }
 
 function deriveLatest
