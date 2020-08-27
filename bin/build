@@ -139,6 +139,7 @@ function _buildDoc
             titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
             [ -e "../intermediate/preview/$myTag" ] && preview="$(cat "../intermediate/preview/$myTag")"
             description="$(getDocAttribute "$srcFile" 'description' "${preview}...")"
+            showInLatest="$(getDocAttribute "$srcFile" 'showInLatest' 'true')"
             
             if [ "${titleImage::1}" == '/' ]; then
                 titleImagePath="../src/site$titleImage"
@@ -153,7 +154,12 @@ function _buildDoc
             case "$stage" in
                 "Prep")
                     # Build intermediate stuff.
-                    addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+                    if [ "$showInLatest" == 'true' ]; then
+                        addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,latestContender,sitemap"
+                    else
+                        addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+                    fi
+                    
                     saveTagCombo "$uniqueTags"
                     buildPreview "$srcFile" "../intermediate/preview/$myTag"
                     buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
@@ -690,7 +696,7 @@ function _buildList
 
 function deriveLatest
 {
-    head -n "$howManyPostsOnRoot" intermediate/tags/all > intermediate/tags/latest
+    head -n "$howManyPostsOnRoot" intermediate/tags/latestContender > intermediate/tags/latest
 }
 
 function copyAssets
