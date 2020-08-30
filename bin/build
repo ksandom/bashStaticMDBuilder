@@ -137,6 +137,7 @@ function _buildDoc
             title="$(getDocAttribute "$srcFile" 'title')"
             titleImage="$(getDocAttribute "$srcFile" 'titleImage')"
             titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
+            preview=''
             [ -e "../intermediate/preview/$myTag" ] && preview="$(cat "../intermediate/preview/$myTag")"
             description="$(getDocAttribute "$srcFile" 'description' "${preview}...")"
             showInLatest="$(getDocAttribute "$srcFile" 'showInLatest' 'true')"
@@ -546,16 +547,14 @@ function buildPreview
     local inFile="$1"
     local outFile="$2"
     
-    value="$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | tr '\n' ' ' | sed 's/[<>/]//g')"
-    
-    onlyWords "$value" > "$outFile"
+    grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | sed 's/[<>/]//g' | onlyWords > "$outFile"
 }
 
 function onlyWords
 {
     local words="$1"
     
-    for word in $words; do
+    while read word; do
         if [ "${word:0:1}" == '[' ]; then
             out="$(echo $word | sed 's/\[//g;s/].*$//g')"
         elif [[ "$word" =~ .*\]\(.* ]]; then
