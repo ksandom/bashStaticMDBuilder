@@ -162,7 +162,11 @@ function _buildDoc
                     fi
                     
                     saveTagCombo "$uniqueTags"
-                    buildPreview "$srcFile" "../intermediate/preview/$myTag"
+                    if [ "$description" == '' ]; then
+                        buildPreview "$srcFile" "../intermediate/preview/$myTag"
+                    else
+                        echo "$description" > "../intermediate/preview/$myTag"
+                    fi
                     buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
                     buildItem "$myTag" "rss" "$uniqueTags"
                     makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
