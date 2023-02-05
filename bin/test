@@ -12,5 +12,5 @@ fi
 . config || exit 1
 
 cd build || exit 1
-python -m http.server "$testPort"
+python3 -m http.server "$testPort"
 
