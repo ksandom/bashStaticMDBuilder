@@ -5,6 +5,9 @@ previewLength=40
 doDebug=0
 doTest=0
 now="$(date +%Y%m%d)"
+mask="none.jpg"
+thumbMask="none.jpg"
+
 . config
 
 if [ "$1" == '--test' ]; then
@@ -142,6 +145,18 @@ function _buildDoc
             description="$(getDocAttribute "$srcFile" 'description' "${preview}...")"
             showInLatest="$(getDocAttribute "$srcFile" 'showInLatest' 'true')"
             
+            # TODO Make it optional to override mask on a page-by-page basis.
+
+            # maskImage in mask out
+            maskImage "$srcFile/$titleImage" "../assets/mask/$titleSize/$mask" "$myTag/titleImage.png"
+            maskImage "$srcFile/$titleImage" "../assets/mask/$thumbnailSize/$thumbMask" "$myTag/thumbImage.png"
+            # TODO Generate masks.
+            # TODO Update install process.
+            # TODO Detect when masks need to be generated.
+            # TODO Check the thumb path.
+            # TODO Point the page at the titleImage.
+            # TODO Point the listings at the new thumb.
+
             if [ "${titleImage::1}" == '/' ]; then
                 titleImagePath="../src/site$titleImage"
                 titleImageThumbnailPath="$titleImageThumbnail"
@@ -569,6 +584,22 @@ function onlyWords
         
         echo -n "$out "
     done
+}
+
+function maskImage
+{
+    local fileIn="$1"
+    local maskFile="$2"
+    local fileOut="$3"
+
+    if [ -e "$fileOut" ]; then
+        # We've already
+        return 0
+    fi
+
+
+    # TODO determine if fileIn needs to be resized to the mask first.
+    magick "$fileIn" \( +clone -alpha extract "$maskFile" -composite \) -compose CopyOpacity -composite "$fileOut"
 }
 
 function images
