@@ -5,7 +5,11 @@ previewLength=40
 doDebug=0
 doTest=0
 now="$(date +%Y%m%d)"
+
+titleSize=3840X1080
 mask="none.jpg"
+
+thumbnailSize=640X180
 thumbMask="none.jpg"
 
 . config
@@ -111,12 +115,12 @@ function _buildDoc
 {
     local fileIn="$1"
     local stage="$2"
+    local justTheFolder="$(basename "$(dirname "$fileIn")")"
 
     # TODO Fix this upstream.
     if [ "${fileIn::12}" == 'intermediate' ]; then
         srcFile="../$fileIn"
-        justTheFile="$(basename "$(dirname "$fileIn")")"
-        fileIn="$justTheFile/README.md"
+        fileIn="$justTheFolder/README.md"
     else
         srcFile="../src/site/$fileIn"
     fi
@@ -147,25 +151,30 @@ function _buildDoc
 
             # TODO Make it optional to override mask on a page-by-page basis.
 
+
+            postDir="../src/site/$justTheFolder"
+            if [ "${titleImage::1}" == '/' ]; then
+                titleImagePath="../src/site$titleImage"
+                titleImageSrc="$postDir/../$titleImage"
+            else
+                titleImagePath="../src/site/$myTag/$titleImage"
+                titleImageSrc="$postDir/$titleImage"
+            fi
+
+            titleImageAbsolutePath="/$myTag/titleImage.png"
+            titleImageThumbnailPath="/$myTag/thumbImage.png"
+
             # maskImage in mask out
-            maskImage "$srcFile/$titleImage" "../assets/mask/$titleSize/$mask" "$myTag/titleImage.png"
-            maskImage "$srcFile/$titleImage" "../assets/mask/$thumbnailSize/$thumbMask" "$myTag/thumbImage.png"
-            # TODO Generate masks.
+            if [ "$titleImage" != 'whoops.jpg' ]; then
+                maskImage "$titleImageSrc" "../intermediate/masks/$titleSize/$mask" "$myTag/titleImage.png" "$titleSize"
+                maskImage "$titleImageSrc" "../intermediate/masks/$thumbnailSize/$thumbMask" "$myTag/thumbImage.png" "$thumbnailSize"
+            else
+                echo "TODO titleImage has not yet been set for $myTag."
+            fi
             # TODO Update install process.
-            # TODO Detect when masks need to be generated.
             # TODO Check the thumb path.
             # TODO Point the page at the titleImage.
             # TODO Point the listings at the new thumb.
-
-            if [ "${titleImage::1}" == '/' ]; then
-                titleImagePath="../src/site$titleImage"
-                titleImageThumbnailPath="$titleImageThumbnail"
-                titleImageAbsolutePath="$titleImage"
-            else
-                titleImagePath="../src/site/$myTag/$titleImage"
-                titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
-                titleImageAbsolutePath="/$myTag/$titleImage"
-            fi
 
             case "$stage" in
                 "Prep")
@@ -184,7 +193,8 @@ function _buildDoc
                     fi
                     buildItem "$myTag" "html" "$uniqueTags" "$titleImageThumbnailPath"
                     buildItem "$myTag" "rss" "$uniqueTags"
-                    makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
+                    # TODO Remove this.
+                    #makeThumbnail "$titleImagePath" ".$titleImageThumbnailPath"
                 ;;
                 "Build")
                     # Build the doc.
@@ -586,20 +596,60 @@ function onlyWords
     done
 }
 
+function generateMasks
+{
+    generateMasksForResolution "$titleSize"
+    generateMasksForResolution "$thumbnailSize"
+}
+
+function generateMasksForResolution
+{
+    resolution="$1"
+    inFilesDir="assets/masks"
+    inFiles="$(cd "$inFilesDir"; ls -1 | grep -v '\(extractMasks\|\.xcf\)')"
+    outFilesDir="intermediate/masks/$resolution"
+
+    mkdir -p "$outFilesDir"
+
+    echo "generateMasksForResolution $resolution"
+    for file in $inFiles; do
+        {
+        inFile="$inFilesDir/$file"
+        outFile="$outFilesDir/$file"
+
+        if [ ! -e "$outFile" ]; then
+            convert -resize "$resolution" "$inFile" "$outFile"
+            echo "  $file:    Done."
+        else
+            echo "  $file:    Skipped (Already done)."
+        fi
+        } &
+    done
+    wait
+}
+
 function maskImage
 {
     local fileIn="$1"
     local maskFile="$2"
     local fileOut="$3"
+    local resolution="$4"
 
     if [ -e "$fileOut" ]; then
-        # We've already
+        # We've already done this.
+        echo "maskImage $fileIn:    Skipping (Already done)."
         return 0
     fi
 
+    echo "maskImage $fileIn:"
 
-    # TODO determine if fileIn needs to be resized to the mask first.
-    magick "$fileIn" \( +clone -alpha extract "$maskFile" -composite \) -compose CopyOpacity -composite "$fileOut"
+    convert -resize "$resolution" "$fileIn" "$fileIn.scaled"
+    echo "  Resized."
+    magick "$fileIn.scaled" \( +clone -alpha extract "$maskFile" -composite \) -compose CopyOpacity -composite "$fileOut"
+    echo "  Masked."
+    rm "$fileIn.scaled"
+
+    echo "  Cleaned."
 }
 
 function images
@@ -703,7 +753,7 @@ function buildList
     local destination="$3"
     local limit="$4"
 
-    echo "buildList"
+    echo "buildList $type"
     while read -r feed; do
         _buildList "$feed" &
     done
@@ -806,6 +856,7 @@ function actions
 
 rm -Rf ../intermediate
 mkdir -p build
+generateMasks
 actions src/actions/build-pre
 copyAssets
 findSubAssets | copySubAssets &
