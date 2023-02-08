@@ -26,7 +26,7 @@ function getDocs
 function getOutName
 {
     local name="$1"
-    
+
     if [ "$(basename "$name")" == 'README.md' ]; then
         echo "$(dirname "$name")/index.html"
     else
@@ -37,7 +37,7 @@ function getOutName
 function assertDir
 {
     local name="$(dirname "$1")"
-    
+
     if [ "$name" != '/' ]; then
         mkdir -p "$name"
     fi
@@ -48,9 +48,9 @@ function getDocAttribute
     local fileName="$1"
     local attribute="$2"
     local default="$3"
-    
+
     data="$(grep "<!-- $attribute: " "$fileName" | sed 's/^.*<!-- //g;s/ -->$//g' | cut -d\  -f2-)"
-    
+
     if [ "$data" != '' ]; then # We have the declaration.
         echo "$data"
     else
@@ -71,13 +71,13 @@ function getDocAttribute
 function shouldPublish
 {
     # Figure out if we should publish a doc. If testing mode is turned on, then yes. Otherwise it depends on whether we have met the pub date.
-    
+
     if [ "$doTest" -eq 1 ]; then
         return 0
     else
         local pubDate="$(echo "$1" | sed 's/-//g')"
         local public="$2"
-        
+
         if [ "$now" -lt "$pubDate" ] && [ "$public" == '1' ]; then
             return 1
         else
@@ -111,7 +111,7 @@ function _buildDoc
 {
     local fileIn="$1"
     local stage="$2"
-    
+
     # TODO Fix this upstream.
     if [ "${fileIn::12}" == 'intermediate' ]; then
         srcFile="../$fileIn"
@@ -120,18 +120,18 @@ function _buildDoc
     else
         srcFile="../src/site/$fileIn"
     fi
-    
+
     if [ -e "$srcFile" ]; then
         # Prep
         assertDir "$fileIn"
         fileOut="$(getOutName "$fileIn")"
-        
+
         [ "$doDebug" -gt 0 ] && echo "$stage doc $fileOut."
-        
+
         # Get the document attributes.
         releaseDate="$(getDocAttribute "$srcFile" 'releaseDate')"
         public="$(getDocAttribute "$srcFile" 'public')"
-        
+
         if shouldPublish "$releaseDate" "$public"; then
             myTag="$(getDocAttribute "$srcFile" 'myTag')"
             tags="$(getDocAttribute "$srcFile" 'tags'),$myTag"
@@ -144,7 +144,7 @@ function _buildDoc
             [ -e "../intermediate/preview/$myTag" ] && preview="$(cat "../intermediate/preview/$myTag")"
             description="$(getDocAttribute "$srcFile" 'description' "${preview}...")"
             showInLatest="$(getDocAttribute "$srcFile" 'showInLatest' 'true')"
-            
+
             # TODO Make it optional to override mask on a page-by-page basis.
 
             # maskImage in mask out
@@ -166,7 +166,7 @@ function _buildDoc
                 titleImageThumbnailPath="/$myTag/$titleImageThumbnail"
                 titleImageAbsolutePath="/$myTag/$titleImage"
             fi
-            
+
             case "$stage" in
                 "Prep")
                     # Build intermediate stuff.
@@ -175,7 +175,7 @@ function _buildDoc
                     else
                         addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
                     fi
-                    
+
                     saveTagCombo "$uniqueTags"
                     if [ "$description" == '' ]; then
                         buildPreview "$srcFile" "../intermediate/preview/$myTag"
@@ -191,32 +191,32 @@ function _buildDoc
                     cat ../src/templates/head.html > "$fileOut"
                     cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
                     templateFile "$fileOut"
-                    
+
                     openDiv "recommendedItems" >> "$fileOut"
-                    
+
                     openDiv "myTags" "  " >> "$fileOut"
                     getTagBar "$uniqueTags" "html" >> "$fileOut"
                     closeDiv "myTags" "  " >> "$fileOut"
-                    
+
                     if postReferences "$myTag" "$uniqueTags"; then
                         openDiv "postReferences" "  " >> "$fileOut"
                         heading 2 "This post references" >> "$fileOut"
                         cat "../intermediate/list/$myTag.references" >> "$fileOut"
                         closeDiv "postReferences" "  " >> "$fileOut"
                     fi
-                    
+
                     if postReferencedBy "$myTag" "$uniqueTags"; then
                         openDiv "postReferencedBy" "  " >> "$fileOut"
                         heading 2 "This post is referenced by" >> "$fileOut"
                         cat "../intermediate/list/$myTag.postReferencedBy" >> "$fileOut"
                         closeDiv "postReferencedBy" "  " >> "$fileOut"
                     fi
-                    
+
                     openDiv "sameTags" "  " >> "$fileOut"
                     heading 2 "Posts using the same tags" >> "$fileOut"
                     cat "../intermediate/list/$uniqueTags" >> "$fileOut"
                     closeDiv "sameTags" "  " >> "$fileOut"
-                    
+
                     closeDiv "recommendedItems" >> "$fileOut"
                     cat ../src/templates/foot.html >> "$fileOut"
                 ;;
@@ -239,9 +239,9 @@ function buildItem
     local itemFileOut="../intermediate/$type/$tag"
     local tagBar="$(getTagBar "$uniqueTags" "html")"
     local content="$(cat "../intermediate/preview/$tag")"
-    
+
     cat "../src/templates/item.$type" | templatePipe > "$itemFileOut"
-    
+
     replaceLine "$itemFileOut" '~!itemTags!~' "$tagBar"
 }
 
@@ -249,13 +249,13 @@ function postReferences
 {
     local myTag="$1"
     local tags="$2"
-    
+
     cd ..
     IFS=","
     result=0
     mkdir -p "intermediate/postReferences"
     rm -f "intermediate/postReferences/$myTag.references"
-    
+
     for tag in $tags; do
         if [ "$tag" != "$myTag" ]; then
             if [ -e "src/site/$tag" ]; then
@@ -265,7 +265,7 @@ function postReferences
         fi
     done
     IFS=" "
-    
+
     if [ "$result" -gt 0 ]; then
         echo "$myTag.references" | buildList intermediate/postReferences html intermediate/list 100000
         cd ~-
@@ -280,13 +280,13 @@ function postReferencedBy
 {
     local myTag="$1"
     local tags="$2"
-    
+
     cd ..
     IFS=","
     result=0
     mkdir -p "intermediate/postReferencedBy"
     rm -f "intermediate/postReferencedBy/$myTag.postReferencedBy"
-    
+
     if grep -v "$myTag" "intermediate/tags/$myTag" >> "intermediate/postReferencedBy/$myTag.postReferencedBy"; then
         IFS=" "
         echo "$myTag.postReferencedBy" | buildList intermediate/postReferencedBy html intermediate/list 100000
@@ -312,7 +312,7 @@ function templatePipe
 function templateFile
 {
     local fileName="$1"
-    
+
     sed "$(generateTemplateConfig)" -i "$fileName"
 }
 
@@ -320,7 +320,7 @@ function openDiv
 {
     local divName="$1"
     local indentation="$2"
-    
+
     echo -e "\n$indentation<DIV CLASS=\"$divName\">"
 }
 
@@ -328,7 +328,7 @@ function closeDiv
 {
     local divName="$1"
     local indentation="$2"
-    
+
     echo -e "\n$indentation</DIV><!-- Close DIV \"$divName\" --> "
 }
 
@@ -336,7 +336,7 @@ function heading
 {
     local level="$1"
     local value="$2"
-    
+
     echo "<H$level>$value</H2>"
 }
 
@@ -346,7 +346,7 @@ function generateRelated
     local tag="$1"
     local outputDir="../related/$tag"
     local outputFile="$outputDir/README.md"
-    
+
     if [ ! -e "$outputFile" ]; then
         mkdir -p "$outputDir"
         cat "../../src/templates/relatedTag.md" | sed "s#~!myTag!~#$tag#g" > "$outputFile"
@@ -358,7 +358,7 @@ function replaceLine
     local fileName="$1"
     local search="$2"
     local replace="$3"
-    
+
     if [ -e "$fileName" ]; then
         rm -f "$fileName.replace"
         touch "$fileName.replace"
@@ -369,7 +369,7 @@ function replaceLine
                 echo "$replace" >> "$fileName.replace"
             fi
         done < <(cat "$fileName")
-        
+
         rm "$fileName"
         mv "$fileName.replace" "$fileName"
     fi
@@ -379,10 +379,10 @@ function getImageName
 {
     local inputName="$1"
     local suffix="$2"
-    
+
     local extension="$(echo "$inputName" | sed 's/^.*\.//g')"
     local name="$(echo "$inputName" | sed "s/\.$extension$//g")"
-    
+
     echo "$name$suffix.$extension"
 }
 
@@ -390,7 +390,7 @@ function makeThumbnail
 {
     local inFile="$1"
     local outFile="$2"
-    
+
     if [ ! -f "$outFile" ]; then
         mkdir -p "$(dirname "$outFile")"
         convert -resize "$thumbnailSize" "$inFile" "$outFile"
@@ -410,14 +410,14 @@ function _buildRSSFeed
 {
     local feedName="$1"
     local fileName="build/rss/$feedName.rss"
-    
+
     [ "$doDebug" -gt 0 ] && echo "Build feed $feedName."
-    
+
     local tag="$feedName"
     cat "src/templates/head.rss" | templatePipe > "$fileName"
-    
+
     cat "intermediate/feed/$feedName" >> "$fileName"
-    
+
     cat "src/templates/foot.rss" \
         >> "$fileName"
 }
@@ -427,7 +427,7 @@ function getTagBar
     local tags="$1"
     local type="$2"
     local tagBarFile="../intermediate/tagBar/bars/$tags.$type"
-    
+
     buildTagBar "$tags" "$type"
     cat "$tagBarFile"
 }
@@ -437,11 +437,11 @@ function buildTagBar
     local tags="$1"
     local type="$2"
     local tagBarFile="../intermediate/tagBar/bars/$tags.$type"
-    
+
     if [ ! -f "$tagBarFile" ]; then
         tagsContents="$(_buildTags "$tags" "$type" | _buildTagsGetContents)"
         # echo "DEBUG $tagsContents" >&2
-        
+
         cat "../src/templates/tagBar.$type" | \
             sed "s#~!tags!~#$tagsContents#g" \
             > "$tagBarFile"
@@ -459,7 +459,7 @@ function _buildTags
 {
     local tags="$1"
     local type="$2"
-    
+
     # TODO Do this better. Eg it won't handle tags with spaces (which shouldn't happen anyway...). Check if IFS will work here.
     for tag in $(echo $tags | sed 's/,/ /g'); do
         tagFileName="../intermediate/tagBar/tags/$tag.$type"
@@ -473,11 +473,11 @@ function buildTag
     local tag="$1"
     local type="$2"
     local tagFileName="$3"
-    
+
     cat "../src/templates/tag.$type" | \
         sed "s#~!tag!~#$tag#g" \
         > "$tagFileName"
-    
+
 }
 
 function addDocToTags
@@ -485,13 +485,13 @@ function addDocToTags
     local doc="$1"
     local date="$2"
     local tags="$3"
-    
+
     IFS=","
-    
+
     for tag in $tags; do
         addDocToTag "$doc" "$date" $tag
     done
-    
+
     IFS=" "
 }
 
@@ -499,11 +499,11 @@ function addDocToTag
 {
     # This is assumed to be  run from inside addDocToTags, inside buildDocs. Therefore the it will be executed inside the ./build directory, so all paths are relative to that.
     local tagPath="../intermediate/tags"
-    
+
     local doc="$1"
     local date="$2"
     local tag="$3"
-    
+
     if [ "$doc" == '' ] || [ "$date" == '' ] || [ "$tag" == '' ] ; then
         echo "Could not add doc '$doc' to tag '$tag' on date '$date'." >&2
         return 1
@@ -515,19 +515,19 @@ function addDocToTag
 function sortTags
 {
     cd  intermediate/tags
-    
+
     echo -n "Sorting tags..."
     for tag in *.raw;do
         sort -ur "$tag" > "$tag.sorted"
         shortTag="$(echo "$tag" | sed 's/\.raw$//g')"
         mv "$tag.sorted" "$shortTag"
         rm "$tag"
-        
+
         generateRelated "$shortTag"
     done
     wait
     echo "Done."
-    
+
     cd ../.. # TODO Is this really needed?
 }
 
@@ -548,7 +548,7 @@ function fillTagCombos
 {
     # Assumed to be called from the script root. So not inside any sub-directory.
     cd intermediate/tagCombos
-    
+
     echo "fillTagCombos."
     for tagCombo in *; do
         [ "$doDebug" -gt 0 ] && echo "Fill tagCombo $tagCombo."
@@ -557,7 +557,7 @@ function fillTagCombos
             cat "../tags/$tag"
         done | sort -ru > "$tagCombo"
     done
-    
+
     cd ~-
 }
 
@@ -565,14 +565,14 @@ function buildPreview
 {
     local inFile="$1"
     local outFile="$2"
-    
+
     grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | sed 's/[<>/]//g' | onlyWords > "$outFile"
 }
 
 function onlyWords
 {
     local words="$1"
-    
+
     while read word; do
         if [ "${word:0:1}" == '[' ]; then
             out="$(echo $word | sed 's/\[//g;s/].*$//g')"
@@ -581,7 +581,7 @@ function onlyWords
         else
             out="$word"
         fi
-        
+
         echo -n "$out "
     done
 }
@@ -606,22 +606,22 @@ function images
 {
     local myTag="$1"
     local IFS="\n"
-    
+
     while read -r line;do
         if [ "${line::2}" == '![' ]; then
             description="$(echo "$line" | sed 's/^..//g; s/\].*$//g')"
             file="$(echo "$line" | sed 's/^.*(//g; s/).*$//g')"
-            
+
             previewFile="$(getImageName "$file" "_preview")"
             imageFile="$(getImageName "$file" "_viewable")"
-            
+
             if [ -f "$myTag/$file" ]; then
                 imageMaxSize "$myTag/$file" "$myTag/$previewFile" "$previewMaxSize"
                 imageMaxSize "$myTag/$file" "$myTag/$imageFile" "$useableMaxSize"
-                
+
                 rm "$myTag/$file"
             fi
-            
+
             if [ -f "$myTag/$previewFile" ] && [ -f "$myTag/$imageFile" ] ; then
                 echo "<p class=\"insertedImageWrapper\"><a href=\"$imageFile\" target=\"_blank\"><img alt=\"$description\" class=\"insertedImage\" src=\"$previewFile\" /></a><br>Above: $description</p>"
             else
@@ -631,7 +631,7 @@ function images
             echo "$line"
         fi
     done
-    
+
     IFS=" "
 }
 
@@ -641,12 +641,12 @@ function imageMaxSize
     local imageOutFile="$2"
     local imageMaxSize="$3"
     local IFS=" "
-    
+
     if [ -e "$imageOutFile" ]; then
         true # Don't do anything if we already have it. This can be re-done by doing a ./bin/freshBuild
     elif [ -e "$imageInFile" ]; then
         read x y < <(identify -format "%w %h" "$imageInFile")
-        
+
         if [ "$x" -gt "$y" ]; then
             if [ "$x" -gt "$imageMaxSize" ]; then
                 let newY=$y*$imageMaxSize/$x
@@ -670,7 +670,7 @@ function imageMaxSize
 function videos
 {
     local IFS="\n"
-    
+
     while read -r line; do
         if [ "${line::29}" == "https://www.youtube.com/watch" ] || [ "${line::28}" == "http://www.youtube.com/watch" ]; then
             id="$(echo "$line" | sed 's/^.*v=//g;s/&.*$//g')"
@@ -682,7 +682,7 @@ function videos
             echo "$line"
         fi
     done
-    
+
     IFS=" "
 }
 
@@ -702,7 +702,7 @@ function buildList
     local type="$2"
     local destination="$3"
     local limit="$4"
-    
+
     echo "buildList"
     while read -r feed; do
         _buildList "$feed" &
@@ -713,9 +713,9 @@ function buildList
 function _buildList
 {
     local feed="$1"
-    
+
     [ "$doDebug" -gt 0 ] && echo "Build feed contents $feed."
-    
+
     filePath="$destination/$feed"
     rm -f "$filePath"
     if [ -e "$listOrigin/$feed" ]; then
@@ -778,7 +778,7 @@ function copySymlinks
         if [ "$subDir" != '.' ]; then
             mkdir -p "$subDir"
         fi
-        
+
         if [ ! -f "$symlink" ]; then
             cp -P "../src/site/$symlink" "$symlink"
         fi
@@ -788,7 +788,7 @@ function copySymlinks
 function actions
 {
     local actionsDir="$1"
-    
+
     if [ -e "$actionsDir" ]; then
         echo "Running actions in \"$actionsDir\"."
         for action in "$actionsDir"/*; do
