@@ -24,6 +24,15 @@ count="$(ls -1 masks*jpg | wc -l)"
 
 # Give predictable names to the masks. We just have to put the names in the same order that they appear in the $masksSourceFile .
 echo "Naming the masks."
+name hGradient-wonky3
+name hGradient-wonky2
+name hGradient-wonky1
+name hGradient-wonky0
+name hGradient-010
+name hGradient-025
+name hGradient-050
+name hGradient-075
+name hGradient-100
 name gradient-010
 name gradient-025
 name gradient-050
