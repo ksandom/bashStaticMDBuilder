@@ -155,19 +155,19 @@ function _buildDoc
             postDir="../src/site/$justTheFolder"
             if [ "${titleImage::1}" == '/' ]; then
                 titleImagePath="../src/site$titleImage"
-                titleImageSrc="$postDir/../$titleImage"
+                titleImageSrc="$postDir/..$titleImage"
             else
-                titleImagePath="../src/site/$myTag/$titleImage"
+                titleImagePath="../src/site/$justTheFolder/$titleImage"
                 titleImageSrc="$postDir/$titleImage"
             fi
 
-            titleImageAbsolutePath="/$myTag/titleImage.png"
-            titleImageThumbnailPath="/$myTag/thumbImage.png"
+            titleImageAbsolutePath="/$justTheFolder/titleImage.png"
+            titleImageThumbnailPath="/$justTheFolder/thumbImage.png"
 
             # maskImage in mask out
             if [ "$titleImage" != 'whoops.jpg' ]; then
-                maskImage "$titleImageSrc" "../intermediate/masks/$titleSize/$mask" "$myTag/titleImage.png" "$titleSize"
-                maskImage "$titleImageSrc" "../intermediate/masks/$thumbnailSize/$thumbMask" "$myTag/thumbImage.png" "$thumbnailSize"
+                maskImage "$titleImagePath" "../intermediate/masks/$titleSize/$mask" "$justTheFolder/titleImage.png" "$titleSize"
+                maskImage "$titleImagePath" "../intermediate/masks/$thumbnailSize/$thumbMask" "$justTheFolder/thumbImage.png" "$thumbnailSize"
             else
                 echo "TODO titleImage has not yet been set for $myTag."
             fi
@@ -634,22 +634,30 @@ function maskImage
     local maskFile="$2"
     local fileOut="$3"
     local resolution="$4"
+    local prefix="maskImage $fileIn => $resolution:    "
 
     if [ -e "$fileOut" ]; then
         # We've already done this.
-        echo "maskImage $fileIn:    Skipping (Already done)."
+        echo "${prefix}Skipping (Already done)."
         return 0
     fi
 
-    echo "maskImage $fileIn:"
+    echo "${prefix}Begin."
 
     convert -resize "$resolution" "$fileIn" "$fileIn.scaled"
-    echo "  Resized."
-    magick "$fileIn.scaled" \( +clone -alpha extract "$maskFile" -composite \) -compose CopyOpacity -composite "$fileOut"
-    echo "  Masked."
-    rm "$fileIn.scaled"
+    if [ -e "$fileIn.scaled" ]; then
+        maskIn="$fileIn.scaled"
+        echo "${prefix}Resized."
+    else
+        maskIn="$fileIn"
+        echo "${prefix}Not resized; Using the original."
+    fi
 
-    echo "  Cleaned."
+    magick "$maskIn" \( +clone -alpha extract "$maskFile" -composite \) -compose CopyOpacity -composite "$fileOut"
+    echo "${prefix}Masked."
+
+    rm -f "$fileIn.scaled"
+    echo "${prefix}Cleaned."
 }
 
 function images
