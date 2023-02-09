@@ -297,7 +297,7 @@ function postReferencedBy
     mkdir -p "intermediate/postReferencedBy"
     rm -f "intermediate/postReferencedBy/$myTag.postReferencedBy"
 
-    if grep -v "$myTag" "intermediate/tags/$myTag" >> "intermediate/postReferencedBy/$myTag.postReferencedBy"; then
+    if grep -v " $myTag$" "intermediate/tags/$myTag" >> "intermediate/postReferencedBy/$myTag.postReferencedBy"; then
         IFS=" "
         echo "$myTag.postReferencedBy" | buildList intermediate/postReferencedBy html intermediate/list 100000
         cd ~-
