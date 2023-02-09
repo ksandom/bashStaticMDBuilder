@@ -186,7 +186,7 @@ function _buildDoc
                     fi
 
                     saveTagCombo "$uniqueTags"
-                    if [ "$description" == '' ]; then
+                    if [ "${description:0:1}" == '.' ]; then
                         buildPreview "$srcFile" "../intermediate/preview/$myTag"
                     else
                         echo "$description" > "../intermediate/preview/$myTag"
