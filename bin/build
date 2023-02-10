@@ -81,12 +81,17 @@ function shouldPublish
     else
         local pubDate="$(echo "$1" | sed 's/-//g')"
         local public="$2"
+        local myTag="$3"
 
-        if [ "$now" -lt "$pubDate" ] && [ "$public" == '1' ]; then
-            return 1
+        echo -n "shouldPublish/$myTag: now=$now date=$pubDate public=$public toTest=$doTest result="
+        if [ "$now" -gt "$pubDate" ] && [ "$public" == '1' ]; then
+            result=0
         else
-            return 0
+            result=1
         fi
+
+        echo "$result"
+        return "$result"
     fi
 }
 
@@ -136,7 +141,7 @@ function _buildDoc
         releaseDate="$(getDocAttribute "$srcFile" 'releaseDate')"
         public="$(getDocAttribute "$srcFile" 'public')"
 
-        if shouldPublish "$releaseDate" "$public"; then
+        if shouldPublish "$releaseDate" "$public" "$justTheFolder"; then
             myTag="$(getDocAttribute "$srcFile" 'myTag')"
             tags="$(getDocAttribute "$srcFile" 'tags'),$myTag"
             tighterTags="$(echo "$tags" | sed 's/, /,/g')"
