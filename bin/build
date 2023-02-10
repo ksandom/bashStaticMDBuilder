@@ -151,7 +151,7 @@ function _buildDoc
             titleImageThumbnail="$(getImageName "$titleImage" "_thumb")"
             preview=''
             [ -e "../intermediate/preview/$myTag" ] && preview="$(cat "../intermediate/preview/$myTag")"
-            description="$(getDocAttribute "$srcFile" 'description' "${preview}...")"
+            description="$(getDocAttribute "$srcFile" 'description' "${preview}")"
             showInLatest="$(getDocAttribute "$srcFile" 'showInLatest' 'true')"
 
             # TODO Make it optional to override mask on a page-by-page basis.
@@ -176,10 +176,6 @@ function _buildDoc
             else
                 echo "TODO titleImage has not yet been set for $myTag."
             fi
-            # TODO Update install process.
-            # TODO Check the thumb path.
-            # TODO Point the page at the titleImage.
-            # TODO Point the listings at the new thumb.
 
             case "$stage" in
                 "Prep")
@@ -191,7 +187,7 @@ function _buildDoc
                     fi
 
                     saveTagCombo "$uniqueTags"
-                    if [ "${description:0:1}" == '.' ]; then
+                    if [ "${description:0:1}" == '.' ] || [ "$description" == '' ]; then
                         buildPreview "$srcFile" "../intermediate/preview/$myTag"
                     else
                         echo "$description" > "../intermediate/preview/$myTag"
@@ -272,7 +268,7 @@ function postReferences
     rm -f "intermediate/postReferences/$myTag.references"
 
     for tag in $tags; do
-        if [ "$tag" != "$myTag" ]; then
+        if [ "$tag" != "$myTag" ] && [ "$tag" != "welcome" ]; then
             if [ -e "src/site/$tag" ]; then
                 echo "unimportantDate $tag" >> "intermediate/postReferences/$myTag.references"
                 let result=$result+1
@@ -302,7 +298,7 @@ function postReferencedBy
     mkdir -p "intermediate/postReferencedBy"
     rm -f "intermediate/postReferencedBy/$myTag.postReferencedBy"
 
-    if grep -v " $myTag$" "intermediate/tags/$myTag" >> "intermediate/postReferencedBy/$myTag.postReferencedBy"; then
+    if grep -v " \($myTag\|welcome\)$" "intermediate/tags/$myTag" >> "intermediate/postReferencedBy/$myTag.postReferencedBy"; then
         IFS=" "
         echo "$myTag.postReferencedBy" | buildList intermediate/postReferencedBy html intermediate/list 100000
         cd ~-
@@ -455,7 +451,6 @@ function buildTagBar
 
     if [ ! -f "$tagBarFile" ]; then
         tagsContents="$(_buildTags "$tags" "$type" | _buildTagsGetContents)"
-        # echo "DEBUG $tagsContents" >&2
 
         cat "../src/templates/tagBar.$type" | \
             sed "s#~!tags!~#$tagsContents#g" \
@@ -566,11 +561,11 @@ function fillTagCombos
 
     echo "fillTagCombos."
     for tagCombo in *; do
-        [ "$doDebug" -gt 0 ] && echo "Fill tagCombo $tagCombo."
+        [ "$doDebug" -gt 0 ] && echo "  Fill tagCombo $tagCombo."
         for tag in $(echo $tagCombo | sed 's/,/\n/g'); do
-            [ "$doDebug" -gt 1 ] && echo "  $tag" >&2
+            [ "$doDebug" -gt 1 ] && echo "    $tag" >&2
             cat "../tags/$tag"
-        done | sort -ru > "$tagCombo"
+        done | sort -ru | grep -v ' welcome' > "$tagCombo"
     done
 
     cd ~-
@@ -581,7 +576,7 @@ function buildPreview
     local inFile="$1"
     local outFile="$2"
 
-    grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | sed 's/[<>/]//g' | onlyWords > "$outFile"
+    echo "$(grep -v '\(^<!-- \|^$\|^#\|^!\|^\[\|^----\|^====\|^\\\\\|^.$\|^http\)' "$inFile"| tr ' ' '\n' | head -n "$previewLength" | sed 's/[<>/]//g' | onlyWords)..." > "$outFile"
 }
 
 function onlyWords
