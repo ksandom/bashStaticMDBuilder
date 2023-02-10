@@ -4,7 +4,10 @@
 installPathBin="$(dirname "$0")"
 installPath="$(dirname "$installPathBin")"
 
+rm -f bin assets actionsAvailable
+
 ln -sf "$installPath"/bin .
+ln -sf "$installPath"/assets .
 ln -sf "$installPath"/actionsAvailable .
 mkdir -p build src/{templates,site}
 
@@ -22,7 +25,12 @@ siteDescription=\"This is such a cool site that you should totally spend some ti
 howManyPostsOnRoot=3
 
 # Images.
-thumbnailSize=320X90
+titleSize=3840X1080
+mask=\"none.jpg\"
+
+thumbnailSize=640X180
+thumbMask=\"none.jpg\"
+
 previewMaxSize=1024
 useableMaxSize=1920
 
