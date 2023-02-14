@@ -7,6 +7,7 @@ if [ ! -e config ] || [ ! -e build ]; then
 fi
 
 cd build || exit 1
-rm -Rf css
-ln -s ../src/site/css .
+rm -Rfv css js
+ln -sv ../src/site/css .
+ln -sv ../src/site/js .
 touch ".test"
