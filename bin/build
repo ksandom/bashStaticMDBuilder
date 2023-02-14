@@ -203,6 +203,10 @@ function _buildDoc
                     cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
                     templateFile "$fileOut"
 
+                    if [ -e ../src/templates/bellyButton.html  ]; then
+                        cat ../src/templates/bellyButton.html >> "$fileOut"
+                    fi
+
                     openDiv "recommendedItems" >> "$fileOut"
 
                     openDiv "myTags" "  " >> "$fileOut"
