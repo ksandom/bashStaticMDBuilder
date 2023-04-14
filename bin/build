@@ -674,14 +674,19 @@ function images
             description="$(echo "$line" | sed 's/^..//g; s/\].*$//g')"
             file="$(echo "$line" | sed 's/^.*(//g; s/).*$//g')"
 
-            previewFile="$(getImageName "$file" "_preview")"
-            imageFile="$(getImageName "$file" "_viewable")"
+            if [ "${file: -4}" == '.svg' ] || [ "${file: -4}" == '.SVG' ]; then
+                previewFile="$file"
+                imageFile="$file"
+            else
+                previewFile="$(getImageName "$file" "_preview")"
+                imageFile="$(getImageName "$file" "_viewable")"
 
-            if [ -f "$myTag/$file" ]; then
-                imageMaxSize "$myTag/$file" "$myTag/$previewFile" "$previewMaxSize"
-                imageMaxSize "$myTag/$file" "$myTag/$imageFile" "$useableMaxSize"
+                if [ -f "$myTag/$file" ]; then
+                    imageMaxSize "$myTag/$file" "$myTag/$previewFile" "$previewMaxSize"
+                    imageMaxSize "$myTag/$file" "$myTag/$imageFile" "$useableMaxSize"
 
-                rm "$myTag/$file"
+                    rm "$myTag/$file"
+                fi
             fi
 
             if [ -f "$myTag/$previewFile" ] && [ -f "$myTag/$imageFile" ] ; then
