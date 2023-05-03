@@ -199,8 +199,12 @@ function _buildDoc
                 ;;
                 "Build")
                     # Build the doc.
+                    mkdir -p ../intermediate/almostBuilt
                     cat ../src/templates/head.html > "$fileOut"
-                    cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html >> "$fileOut"
+                    cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html --wrap=none | indentedHeadings "$justTheFolder" > ../intermediate/almostBuilt/"$justTheFolder"
+
+                    cat ../intermediate/almostBuilt/"$justTheFolder" | insertTOC "$justTheFolder" >> "$fileOut"
+
                     templateFile "$fileOut"
 
                     if [ -e ../src/templates/bellyButton.html  ]; then
@@ -751,6 +755,69 @@ function videos
     done
 
     IFS=" "
+}
+
+function indentedHeadings
+{
+    local name="$1"
+
+    mkdir -p ../intermediate/toc
+    local tocFile="../intermediate/toc/$name"
+    local lastIndentation=2
+    local listBegun=0
+
+    rm -f "$tocFile"
+
+    while read -r line; do
+        if [ "${line::2}" == '<h' ] || [ "${line::2}" == '<H' ]; then
+            if [ "$listBegun" == "0" ]; then
+                listBegun=1
+                echo "<UL>" >> "$tocFile"
+            fi
+
+            let indentLevel="${line:2:1}"
+            id="$(echo "$line" | cut -d \" -f2)"
+            text="$(echo "$line" | cut -d '>' -f2 | cut -d '<' -f1)"
+
+            if [ "$indentLevel" -lt "$lastIndentation" ]; then
+                for i in $(bash -c "echo {$lastIndentation..$indentLevel}" | cut -d \  -f2-); do
+                    echo "</UL>" >> "$tocFile"
+                done
+            elif [ "$indentLevel" -gt "$lastIndentation" ]; then
+                for i in $(bash -c "echo {$lastIndentation..$indentLevel}" | cut -d \  -f2-); do
+                    echo "<UL>" >> "$tocFile"
+                done
+            fi
+
+            lastIndentation="$indentLevel"
+
+            echo -e "</SPAN>\n$line\n<SPAN CLASS=\"indentLevel$indentLevel\">"
+            echo "<LI><A HREF=\"#$id\">$text</A></LI>" >> "$tocFile"
+        else
+            echo "$line"
+        fi
+    done
+
+    for i in $(bash -c "echo {$lastIndentation..2}"); do
+        echo "</UL>" >> "$tocFile"
+    done
+}
+
+function insertTOC
+{
+    ## This relies on indentedHeadings to have been called first.
+    local name="$1"
+    local tocFile="../intermediate/toc/$name"
+
+    while read -r line; do
+        if [ "${line}" == '<!-- TOC -->' ]; then
+            line="<H2 id=\"table-of-contents\">Table of contents</H2>"
+            echo -e "</SPAN>\n$line\n<SPAN CLASS=\"indentLevel2\">"
+            cat "$tocFile"
+        else
+            echo "$line"
+        fi
+    done
 }
 
 function getLists
