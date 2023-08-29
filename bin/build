@@ -201,8 +201,9 @@ function _buildDoc
                     # Build the doc.
                     mkdir -p ../intermediate/almostBuilt
                     cat ../src/templates/head.html > "$fileOut"
-                    cat "$srcFile" | videos | images "$myTag" | pandoc -f markdown -t html --wrap=none | indentedHeadings "$justTheFolder" > ../intermediate/almostBuilt/"$justTheFolder"
-
+                    
+                    cat "$srcFile" | videos | images "$myTag" | pandoc -p -f markdown -t html --wrap=none | indentedHeadings "$justTheFolder" > ../intermediate/almostBuilt/"$justTheFolder"
+                    
                     cat ../intermediate/almostBuilt/"$justTheFolder" | insertTOC "$justTheFolder" >> "$fileOut"
 
                     templateFile "$fileOut"
@@ -381,7 +382,7 @@ function replaceLine
     if [ -e "$fileName" ]; then
         rm -f "$fileName.replace"
         touch "$fileName.replace"
-        while read -r line; do
+        while IFS= read -r line; do
             if [ "$line" != "$search" ]; then
                 echo "$line" >> "$fileName.replace"
             else
@@ -673,7 +674,7 @@ function images
     local myTag="$1"
     local IFS="\n"
 
-    while read -r line;do
+    while IFS= read -r line;do
         if [ "${line::2}" == '![' ]; then
             description="$(echo "$line" | sed 's/^..//g; s/\].*$//g')"
             file="$(echo "$line" | sed 's/^.*(//g; s/).*$//g')"
@@ -742,7 +743,7 @@ function videos
 {
     local IFS="\n"
 
-    while read -r line; do
+    while IFS= read -r line; do
         if [ "${line::29}" == "https://www.youtube.com/watch" ] || [ "${line::28}" == "http://www.youtube.com/watch" ] || [ "${line::17}" == "https://youtu.be/" ]; then
             id="$(echo "$line" | sed 's/^.*\(v=\|\.be\/\)//g;s/&.*$//g')"
             echo '<iframe class="video" width="560" height="315" src="https://www.youtube.com/embed/'"$id"'" frameborder="0" allow="accelerometer; autoplay; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>'
@@ -768,8 +769,10 @@ function indentedHeadings
 
     rm -f "$tocFile"
 
-    while read -r line; do
-        if [ "${line::2}" == '<h' ] || [ "${line::2}" == '<H' ]; then
+    while IFS= read -r line; do
+        if [ "${line::3}" == '<hr' ] || [ "${line::3}" == '<HR' ]; then
+            echo "$line"
+        elif [ "${line::2}" == '<h' ] || [ "${line::2}" == '<H' ]; then
             if [ "$listBegun" == "0" ]; then
                 listBegun=1
                 echo "<UL>" >> "$tocFile"
@@ -809,7 +812,7 @@ function insertTOC
     local name="$1"
     local tocFile="../intermediate/toc/$name"
 
-    while read -r line; do
+    while IFS= read -r line; do
         if [ "${line}" == '<!-- TOC -->' ]; then
             line="<H2 id=\"table-of-contents\">Table of contents</H2>"
             echo -e "</SPAN>\n$line\n<SPAN CLASS=\"indentLevel2\">"
