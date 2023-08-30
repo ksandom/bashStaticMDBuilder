@@ -122,6 +122,10 @@ function _buildDoc
     local stage="$2"
     local justTheFolder="$(basename "$(dirname "$fileIn")")"
 
+    if [ "$justTheFolder" == '.' ]; then
+        justTheFolder='welcome'
+    fi
+
     # TODO Fix this upstream.
     if [ "${fileIn::12}" == 'intermediate' ]; then
         srcFile="../$fileIn"
@@ -201,9 +205,9 @@ function _buildDoc
                     # Build the doc.
                     mkdir -p ../intermediate/almostBuilt
                     cat ../src/templates/head.html > "$fileOut"
-                    
+
                     cat "$srcFile" | videos | images "$myTag" | pandoc -p -f markdown -t html --wrap=none | indentedHeadings "$justTheFolder" > ../intermediate/almostBuilt/"$justTheFolder"
-                    
+
                     cat ../intermediate/almostBuilt/"$justTheFolder" | insertTOC "$justTheFolder" >> "$fileOut"
 
                     templateFile "$fileOut"
@@ -694,8 +698,13 @@ function images
                 fi
             fi
 
+            prefix=''
+            if [ "$myTag" == 'welcome' ]; then
+                prefix='/welcome/'
+            fi
+
             if [ -f "$myTag/$previewFile" ] && [ -f "$myTag/$imageFile" ] ; then
-                echo "<p class=\"insertedImageWrapper\"><a href=\"$imageFile\" target=\"_blank\"><img alt=\"$description\" class=\"insertedImage\" src=\"$previewFile\" /></a><br>Above: $description</p>"
+                echo "<p class=\"insertedImageWrapper\"><a href=\"$prefix$imageFile\" target=\"_blank\"><img alt=\"$description\" class=\"insertedImage\" src=\"$prefix$previewFile\" /></a><br>Above: $description</p>"
             else
                 echo "Could not find \"$myTag/$previewFile\" & \"$myTag/$imageFile\" in \"$(pwd)\". So this has been skipped in the final output." >&2
             fi
