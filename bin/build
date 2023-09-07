@@ -726,8 +726,9 @@ function imageMaxSize
     if [ -e "$imageOutFile" ]; then
         true # Don't do anything if we already have it. This can be re-done by doing a ./bin/freshBuild
     elif [ -e "$imageInFile" ]; then
-        read x y < <(identify -format "%w %h" "$imageInFile")
+        read x y < <(identify -format "%w %h" "$imageInFile" | sed 's/ .* / /g')
 
+        echo "imageMaxSize: Comparing $x to $y. imageMaxSize=$imageMaxSize. file=$imageInFile" >&2
         if [ "$x" -gt "$y" ]; then
             if [ "$x" -gt "$imageMaxSize" ]; then
                 let newY=$y*$imageMaxSize/$x
