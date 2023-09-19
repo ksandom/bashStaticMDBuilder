@@ -121,6 +121,11 @@ function _buildDoc
     local fileIn="$1"
     local stage="$2"
     local justTheFolder="$(basename "$(dirname "$fileIn")")"
+    local isPrimary="true"
+
+    if [ "$(basename "$fileIn")" != 'README.md' ]; then
+        isPrimary="false"
+    fi
 
     if [ "$justTheFolder" == '.' ]; then
         justTheFolder='welcome'
@@ -147,6 +152,7 @@ function _buildDoc
 
         if shouldPublish "$releaseDate" "$public" "$justTheFolder"; then
             myTag="$(getDocAttribute "$srcFile" 'myTag')"
+            intermediateID="$myTag"
             tags="$(getDocAttribute "$srcFile" 'tags'),$myTag"
             tighterTags="$(echo "$tags" | sed 's/, /,/g')"
             uniqueTags="$(getUniqueTags "$tighterTags")"
@@ -184,10 +190,12 @@ function _buildDoc
             case "$stage" in
                 "Prep")
                     # Build intermediate stuff.
-                    if [ "$showInLatest" == 'true' ]; then
-                        addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,latestContender,sitemap"
-                    else
-                        addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+                    if [ "$isPrimary" == "true" ]; then
+                        if [ "$showInLatest" == 'true' ]; then
+                            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,latestContender,sitemap"
+                        else
+                            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+                        fi
                     fi
 
                     saveTagCombo "$uniqueTags"
@@ -206,9 +214,9 @@ function _buildDoc
                     mkdir -p ../intermediate/almostBuilt
                     cat ../src/templates/head.html > "$fileOut"
 
-                    cat "$srcFile" | videos | images "$myTag" | pandoc -p -f markdown -t html --wrap=none | indentedHeadings "$justTheFolder" > ../intermediate/almostBuilt/"$justTheFolder"
+                    cat "$srcFile" | videos | images "$myTag" | pandoc -p -f markdown -t html --wrap=none | indentedHeadings "$intermediateID" > ../intermediate/almostBuilt/"$intermediateID"
 
-                    cat ../intermediate/almostBuilt/"$justTheFolder" | insertTOC "$justTheFolder" >> "$fileOut"
+                    cat ../intermediate/almostBuilt/"$intermediateID" | insertTOC "$intermediateID" >> "$fileOut"
 
                     templateFile "$fileOut"
 
