@@ -22,8 +22,14 @@ fi
 
 function getDocs
 {
+    if [ "$1" == '' ]; then
+        fileType=""
+    else
+        fileType=" -type $1"
+    fi
+
     cd src/site
-    find . -iname '*.md'
+    find . "$type" -iname '*.md'
     cd .. # TODO Is this really needed?
 }
 
@@ -974,7 +980,8 @@ getLists intermediate/tags | buildList intermediate/tags html intermediate/list 
 getLists intermediate/tagCombos | buildList intermediate/tagCombos html intermediate/list 100000
 getLists intermediate/tags | buildRSSFeeds
 find intermediate/related -type f | buildDocs
-getDocs | buildDocs
+getDocs f | buildDocs
+getDocs l | buildDocs
 findSymlinks | copySymlinks
 actions src/actions/build-post
 
