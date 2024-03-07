@@ -899,7 +899,7 @@ function copyAssets
     for asset in img js css; do
         if [ -e "src/site/$asset" ]; then
             echo "Copying $asset."
-            rsync -r "src/site/$asset" build/ &
+            rsync -vr "src/site/$asset" build/ &
         else
             echo "Skipping $asset."
         fi
@@ -969,7 +969,6 @@ rm -Rf ../intermediate
 mkdir -p build
 generateMasks
 actions src/actions/build-pre
-copyAssets
 findSubAssets | copySubAssets &
 getDocs | prepDocs
 sortTags
@@ -984,5 +983,6 @@ getDocs f | buildDocs
 getDocs l | buildDocs
 findSymlinks | copySymlinks
 actions src/actions/build-post
+copyAssets
 
 # TODO Do lowercase symlinks.
