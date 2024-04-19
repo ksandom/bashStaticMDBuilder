@@ -11,7 +11,12 @@ siteDescription="This is such a cool site that you should totally spend some tim
 howManyPostsOnRoot=3
 
 # Images.
-thumbnailSize=320X90
+titleSize=3840X1080
+mask="none.jpg"
+
+thumbnailSize=640X180
+thumbMask="none.jpg"
+
 previewMaxSize=1024
 useableMaxSize=1920
 
