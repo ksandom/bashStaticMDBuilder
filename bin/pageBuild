@@ -27,6 +27,7 @@ remaining="$1"
 
 #rm -Rf ../intermediate
 mkdir -p build
+generateMasks
 getDocs '' "$remaining" | prepDocs
 getDocs f "$remaining" | buildDocs
 getDocs l "$remaining" | buildDocs
