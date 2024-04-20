@@ -46,7 +46,19 @@ function maskImage
         return 0
     fi
 
+    if [ ! -e "$fileIn" ]; then
+        echo "${prefix}$fileIn (fileIn) does not exist in $(pwd)." >&2
+        return 1
+    fi
+
+    if [ ! -e "$maskFile" ]; then
+        echo "${prefix}$maskFile (maskFile) does not exist in $(pwd)." >&2
+        return 1
+    fi
+
     echo "${prefix}Begin."
+
+    echo "$(pwd);convert -resize \"$resolution\" \"$fileIn\" \"$fileIn.scaled\"" >> /tmp/maskDebug.log
 
     convert -resize "$resolution" "$fileIn" "$fileIn.scaled"
     if [ -e "$fileIn.scaled" ]; then

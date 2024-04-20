@@ -2,13 +2,20 @@
 
 function getDocs
 {
-    if [ "$1" == '' ]; then
+    type="$1"
+    regexFilter="$2"
+
+    if [ "$type" == '' ]; then
         fileType=""
     else
-        fileType=" -type $1"
+        fileType=" -type $type"
+    fi
+
+    if [ "$regexFilter" == '' ]; then
+        regexFilter='.*'
     fi
 
     cd src/site
-    find . "$fileType" -iname '*.md'
+    find . $fileType -iname '*.md' | grep "$regexFilter"
     cd .. # TODO Is this really needed?
 }

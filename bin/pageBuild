@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build the site.
+# Build the pages. (No assets.)
 
 # Load the config.
 . config
@@ -25,24 +25,11 @@ for parameter in $@; do
 done
 remaining="$1"
 
-rm -Rf ../intermediate
+#rm -Rf ../intermediate
 mkdir -p build
-generateMasks
-actions src/actions/build-pre
-findSubAssets | copySubAssets &
 getDocs '' "$remaining" | prepDocs
-sortTags
-deriveLatest
-fillTagCombos
-getLists intermediate/tags | buildList intermediate/tags rss intermediate/feed 10
-getLists intermediate/tags | buildList intermediate/tags html intermediate/list 100000
-getLists intermediate/tagCombos | buildList intermediate/tagCombos html intermediate/list 100000
-getLists intermediate/tags | buildRSSFeeds
-find intermediate/related -type f | buildDocs
 getDocs f "$remaining" | buildDocs
 getDocs l "$remaining" | buildDocs
-findSymlinks | copySymlinks
-actions src/actions/build-post
 copyAssets
 
 # TODO Do lowercase symlinks.
