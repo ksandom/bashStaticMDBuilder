@@ -39,6 +39,9 @@ previewLength=30
 
 # Testing
 testPort=8000
+
+# Don't overload the system.
+maxThreads=\"\$(cpuCoresMinus 3)\"
 " > "config"
 
     echo "Make sure you edit \`config\` before trying to \`./bin/build\` or \`./bin/freshBuild\` your site."

@@ -4,6 +4,9 @@
 . "$libPath/inFiles.sh"
 . "$libPath/outFiles.sh"
 
+# System/foundations.
+. "$libPath/threading.sh"
+
 # Document processing.
 . "$libPath/docProcessing.sh"
 . "$libPath/item.sh"

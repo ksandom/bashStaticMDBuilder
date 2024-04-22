@@ -53,20 +53,14 @@ function prepDocs
     cd build
     mkdir -p ../intermediate/{rss,html,suggested,tags,tagCombos,preview,list,feed,tagBar/tags,tagBar/bars,related} rss
     echo "Prep."
-    while read -r fileIn; do
-        _buildDoc "$fileIn" "Prep"
-    done
-    wait
+    threads _buildDoc "Prep"
 }
 
 function buildDocs
 {
     cd build
     echo "Build."
-    while read -r fileIn; do
-        _buildDoc "$fileIn" "Build" &
-    done
-    wait
+    threads _buildDoc "Build"
 }
 
 function _buildDoc
