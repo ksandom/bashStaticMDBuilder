@@ -40,8 +40,8 @@ previewLength=30
 # Testing
 testPort=8000
 " > "config"
-fi
 
-echo "Make sure you edit \`config\` before trying to \`./bin/build\` or \`./bin/freshBuild\` your site."
+    echo "Make sure you edit \`config\` before trying to \`./bin/build\` or \`./bin/freshBuild\` your site."
+fi
 
 # TODO Handle templates.

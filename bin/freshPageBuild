@@ -2,4 +2,4 @@
 # Delete everything and start again. Useful for when there are deletions.
 
 ./bin/clearCache
-time ./bin/build ""
+time ./bin/pageBuild "$1"
