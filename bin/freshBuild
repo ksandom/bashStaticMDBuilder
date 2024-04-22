@@ -1,6 +1,5 @@
 #!/bin/bash
 # Delete everything and start again. Useful for when there are deletions.
 
-rm -Rf build intermediate
-mkdir build
+./bin/clearCache
 time ./bin/build ""

@@ -1,0 +1,5 @@
+#!/bin/bash
+# Clear all cache.
+
+rm -Rf build intermediate
+mkdir build
