@@ -218,7 +218,7 @@ function replaceLine
         rm -f "$fileName.replace"
         touch "$fileName.replace"
         while IFS= read -r line; do
-            if ! echo "$line" | grep "$search"; then
+            if ! echo "$line" | grep -q "$search"; then
                 echo "$line" >> "$fileName.replace"
             else
                 echo "$replace" >> "$fileName.replace"
