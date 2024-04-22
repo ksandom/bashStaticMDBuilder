@@ -45,4 +45,6 @@ findSymlinks | copySymlinks
 actions src/actions/build-post
 copyAssets
 
+wait
+
 # TODO Do lowercase symlinks.

@@ -5,11 +5,13 @@ function copyAssets
     for asset in img js css; do
         if [ -e "src/site/$asset" ]; then
             echo "Copying $asset."
-            rsync -vr "src/site/$asset" build/ &
+            rsync -r "src/site/$asset" build/ &
         else
             echo "Skipping $asset."
         fi
     done
+
+    wait
 }
 
 function findSubAssets

@@ -33,4 +33,6 @@ getDocs f "$remaining" | buildDocs
 getDocs l "$remaining" | buildDocs
 copyAssets
 
+wait
+
 # TODO Do lowercase symlinks.
