@@ -1,12 +1,12 @@
 #!/bin/bash
 # Build the pages. (No assets.)
 
-# Load the config.
-. config
-
 # Include the libraries.
 libPath="$(dirname "$0")/lib"
 . "$libPath/all.sh"
+
+# Load the config.
+. config
 
 # Handle parameters.
 for parameter in $@; do
