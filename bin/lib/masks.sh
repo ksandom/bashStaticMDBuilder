@@ -40,9 +40,19 @@ function maskImage
     local resolution="$4"
     local prefix="maskImage $fileIn => $resolution:    "
 
+    local maskCache="intermediate/maskCache"
+    mkdir -p "$maskCache"
+    local cacheFile="$maskCache/$(echo "$fileIn $maskFile $resolution" | md5sum | cut -d\  -f1)"
+
     if [ -e "$fileOut" ]; then
         # We've already done this.
         echo "${prefix}Skipping (Already done)."
+        return 0
+    fi
+
+    if [ -e "$cacheFile" ]; then
+        echo "${prefix}Skipping (Using cached file)."
+        cp "$cacheFile" "$fileOut"
         return 0
     fi
 
@@ -79,6 +89,8 @@ function maskImage
         echo "${prefix}$fileOut (fileOut) does not exist in $(pwd)." >&2
         return 1
     fi
+
+    cp "$fileOut" "$cacheFile"
     echo "${prefix}Masked."
 
     rm -f "$fileIn.scaled"
