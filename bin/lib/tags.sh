@@ -138,3 +138,13 @@ function fillTagCombos
     cd ~-
 }
 
+function highlightTag
+{
+    local tag="$1"
+    local tagClass="$2"
+    local fileOut="$3"
+
+    echo "Highlighting $fileOut: s/\(class=\"\)tag\(\"><\!-- tag=$tag \)/\1${tagClass}\2/g" >> /tmp/highlighting.log
+
+    sed -i "s/\(class=\"\)tag\(\"><\!-- tag=$tag \)/\1${tagClass}\2/g" "$fileOut"
+}
