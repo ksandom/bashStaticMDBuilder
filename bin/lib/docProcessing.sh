@@ -198,6 +198,13 @@ function _buildDoc
 
                     closeDiv "recommendedItems" >> "$fileOut"
                     cat ../src/templates/foot.html >> "$fileOut"
+
+                    # Highlight the tags that this post uses.
+                    highlightTag "$myTag" "tagMine" "$fileOut"
+                    spacedTags="$(echo "$uniqueTags" | sed 's/,/ /g')"
+                    for tagToHighlight in $spacedTags; do
+                        highlightTag "$tagToHighlight" "tagSame" "$fileOut"
+                    done
                 ;;
             esac
         else
