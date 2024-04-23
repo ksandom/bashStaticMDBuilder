@@ -19,7 +19,7 @@ function cpuCores
 # Default settings that can be overridden in the app's config.
 maxThreads="$(cpuCores)"
 threadPoolDir="/tmp/threadPool-$$"
-threadPoolInterval="0.5"
+threadPoolInterval="0.1"
 
 function prepareThreadPool
 {
