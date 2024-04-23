@@ -40,7 +40,7 @@ function maskImage
     local resolution="$4"
     local prefix="maskImage $fileIn => $resolution:    "
 
-    local maskCache="intermediate/maskCache"
+    local maskCache="../intermediate/maskCache"
     mkdir -p "$maskCache"
     local cacheFile="$maskCache/$(echo "$fileIn $maskFile $resolution" | md5sum | cut -d\  -f1)"
 
