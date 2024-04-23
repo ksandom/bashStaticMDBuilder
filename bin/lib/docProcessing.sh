@@ -110,6 +110,7 @@ function _buildDoc
             [ -e "../intermediate/preview/$myTag" ] && preview="$(cat "../intermediate/preview/$myTag")"
             description="$(getDocAttribute "$srcFile" 'description' "${preview}")"
             showInLatest="$(getDocAttribute "$srcFile" 'showInLatest' 'true')"
+            showRelated="$(getDocAttribute "$srcFile" 'showRelated' 'true')"
 
             # TODO Make it optional to override mask on a page-by-page basis.
 
@@ -171,32 +172,35 @@ function _buildDoc
                         cat ../src/templates/bellyButton.html >> "$fileOut"
                     fi
 
-                    openDiv "recommendedItems" >> "$fileOut"
+                    if [ "$showRelated" == 'true' ]; then
+                        openDiv "recommendedItems" >> "$fileOut"
 
-                    openDiv "myTags" "  " >> "$fileOut"
-                    getTagBar "$uniqueTags" "html" >> "$fileOut"
-                    closeDiv "myTags" "  " >> "$fileOut"
+                        openDiv "myTags" "  " >> "$fileOut"
+                        getTagBar "$uniqueTags" "html" >> "$fileOut"
+                        closeDiv "myTags" "  " >> "$fileOut"
 
-                    if postReferences "$myTag" "$uniqueTags"; then
-                        openDiv "postReferences" "  " >> "$fileOut"
-                        heading 2 "This post references" >> "$fileOut"
-                        cat "../intermediate/list/$myTag.references" >> "$fileOut"
-                        closeDiv "postReferences" "  " >> "$fileOut"
+                        if postReferences "$myTag" "$uniqueTags"; then
+                            openDiv "postReferences" "  " >> "$fileOut"
+                            heading 2 "This post references" >> "$fileOut"
+                            cat "../intermediate/list/$myTag.references" >> "$fileOut"
+                            closeDiv "postReferences" "  " >> "$fileOut"
+                        fi
+
+                        if postReferencedBy "$myTag" "$uniqueTags"; then
+                            openDiv "postReferencedBy" "  " >> "$fileOut"
+                            heading 2 "This post is referenced by" >> "$fileOut"
+                            cat "../intermediate/list/$myTag.postReferencedBy" >> "$fileOut"
+                            closeDiv "postReferencedBy" "  " >> "$fileOut"
+                        fi
+
+                        openDiv "sameTags" "  " >> "$fileOut"
+                        heading 2 "Posts using the same tags" >> "$fileOut"
+                        cat "../intermediate/list/$uniqueTags" >> "$fileOut"
+                        closeDiv "sameTags" "  " >> "$fileOut"
+
+                        closeDiv "recommendedItems" >> "$fileOut"
                     fi
 
-                    if postReferencedBy "$myTag" "$uniqueTags"; then
-                        openDiv "postReferencedBy" "  " >> "$fileOut"
-                        heading 2 "This post is referenced by" >> "$fileOut"
-                        cat "../intermediate/list/$myTag.postReferencedBy" >> "$fileOut"
-                        closeDiv "postReferencedBy" "  " >> "$fileOut"
-                    fi
-
-                    openDiv "sameTags" "  " >> "$fileOut"
-                    heading 2 "Posts using the same tags" >> "$fileOut"
-                    cat "../intermediate/list/$uniqueTags" >> "$fileOut"
-                    closeDiv "sameTags" "  " >> "$fileOut"
-
-                    closeDiv "recommendedItems" >> "$fileOut"
                     cat ../src/templates/foot.html >> "$fileOut"
 
                     # Highlight the tags that this post uses.
