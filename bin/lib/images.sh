@@ -54,6 +54,20 @@ function makeThumbnail
     fi
 }
 
+function getDimensions
+{
+    local dimCache="intermediate/dimCache"
+    mkdir -p "$dimCache"
+    local key="$(echo "$(pwd)/$1" | md5sum | cut -d\  -f1)"
+    local dimCacheFile="$dimCache/$key"
+
+    if [ ! -e "$dimCacheFile" ]; then
+        identify -format "%w %h" "$1" | sed 's/ .* / /g' > "$dimCacheFile"
+    fi
+
+    cat "$dimCacheFile"
+}
+
 function imageMaxSize
 {
     local imageInFile="$1"
@@ -64,7 +78,7 @@ function imageMaxSize
     if [ -e "$imageOutFile" ]; then
         true # Don't do anything if we already have it. This can be re-done by doing a ./bin/freshBuild
     elif [ -e "$imageInFile" ]; then
-        read x y < <(identify -format "%w %h" "$imageInFile" | sed 's/ .* / /g')
+        read x y < <(getDimensions "$imageInFile")
 
         echo "imageMaxSize: Comparing $x to $y. imageMaxSize=$imageMaxSize. file=$imageInFile" >&2
         if [ "$x" -gt "$y" ]; then
