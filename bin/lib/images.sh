@@ -56,7 +56,7 @@ function makeThumbnail
 
 function getDimensions
 {
-    local dimCache="intermediate/dimCache"
+    local dimCache="../intermediate/dimCache"
     mkdir -p "$dimCache"
     local key="$(echo "$(pwd)/$1" | md5sum | cut -d\  -f1)"
     local dimCacheFile="$dimCache/$key"
