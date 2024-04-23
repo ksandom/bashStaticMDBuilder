@@ -1,8 +1,12 @@
 #!/bin/bash
 # Build the site.
 
+# Include the libraries.
+libPath="$(dirname "$0")/lib"
+. "$libPath/all.sh" || exit 1
+
 # Load the config.
-. config
+. config || exit 1
 
 # Include the libraries.
 libPath="$(dirname "$0")/lib"

@@ -7,17 +7,22 @@ if [ ! -e config ] || [ ! -e build ]; then
 fi
 
 # shellcheck source=../config/config.example.sh
+# Include the libraries.
+libPath="$(dirname "$0")/lib"
+. "$libPath/all.sh" || exit 1
+
+# Load the config.
 . config || exit 1
 
 if [ ! -f build/.test ]; then
     echo "Populating upload cache."
     mkdir -p uploadCache
     rsync --checksum -rulv build/* uploadCache
-    
+
     cd uploadCache || exit 1
 
     aws s3 sync --delete . "$bucket"
-    
+
     exit 0
     cd rss || exit 1
     bucketNameOnly="$(echo "$bucket" | cut -b6-)"
@@ -26,7 +31,7 @@ if [ ! -f build/.test ]; then
         # TODO Region assumption.
         curl -I "http://${bucketNameOnly}.s3-website-eu-west-1.amazonaws.com/rss/$feed"
     done
-    
+
 else
     echo "This build has been built with some form of testing enabled. Re-run freshBuild to re-enable uploads."
 fi

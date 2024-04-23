@@ -9,6 +9,12 @@ if [ ! -e config ] || [ ! -e build ]; then
 fi
 
 # shellcheck source=../config/config.example.sh
+
+# Include the libraries.
+libPath="$(dirname "$0")/lib"
+. "$libPath/all.sh" || exit 1
+
+# Load the config.
 . config || exit 1
 
 cd build || exit 1

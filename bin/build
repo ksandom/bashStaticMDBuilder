@@ -3,10 +3,10 @@
 
 # Include the libraries.
 libPath="$(dirname "$0")/lib"
-. "$libPath/all.sh"
+. "$libPath/all.sh" || exit 1
 
 # Load the config.
-. config
+. config || exit 1
 
 # Handle parameters.
 for parameter in $@; do
