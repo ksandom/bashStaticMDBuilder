@@ -68,9 +68,10 @@ function maskImage
 
     echo "${prefix}Begin. $fileIn + $maskFile -> $fileOut @ $resolution"
 
-    convert -resize "$resolution" "$fileIn" "$fileIn.scaled"
-    if [ -e "$fileIn.scaled" ]; then
-        maskIn="$fileIn.scaled"
+    scaledFile="$fileIn.scaled"
+    convert -resize "$resolution" "$fileIn" "$scaledFile"
+    if [ -e "$scaledFile" ]; then
+        maskIn="$scaledFile"
         echo "${prefix}Resized."
     else
         maskIn="$fileIn"
@@ -84,6 +85,8 @@ function maskImage
 
     magick "$maskIn" \( +clone -alpha extract "$maskFile" -composite \) -compose CopyOpacity -composite "$fileOut"
 
+    rm -f "$scaledFile"
+    echo "${prefix}Cleaned."
 
     if [ ! -e "$fileOut" ]; then
         echo "${prefix}$fileOut (fileOut) does not exist in $(pwd)." >&2
@@ -92,7 +95,4 @@ function maskImage
 
     cp "$fileOut" "$cacheFile"
     echo "${prefix}Masked."
-
-    rm -f "$fileIn.scaled"
-    echo "${prefix}Cleaned."
 }
