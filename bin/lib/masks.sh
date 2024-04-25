@@ -40,9 +40,8 @@ function maskImage
     local resolution="$4"
     local prefix="maskImage $fileIn => $resolution:    "
 
-    local maskCache="../intermediate/maskCache"
-    mkdir -p "$maskCache"
-    local cacheFile="$maskCache/$(echo "$fileIn $maskFile $resolution" | md5sum | cut -d\  -f1)"
+    local cacheFile="$(getCacheEntry "mask" "$fileIn $maskFile $resolution")"
+    local scaledFile="$(getCacheEntry "scaled" "$fileIn $resolution")"
 
     if [ -e "$fileOut" ]; then
         # We've already done this.
@@ -68,7 +67,6 @@ function maskImage
 
     echo "${prefix}Begin. $fileIn + $maskFile -> $fileOut @ $resolution"
 
-    scaledFile="$fileIn.scaled"
     convert -resize "$resolution" "$fileIn" "$scaledFile"
     if [ -e "$scaledFile" ]; then
         maskIn="$scaledFile"
@@ -84,9 +82,6 @@ function maskImage
     fi
 
     magick "$maskIn" \( +clone -alpha extract "$maskFile" -composite \) -compose CopyOpacity -composite "$fileOut"
-
-    rm -f "$scaledFile"
-    echo "${prefix}Cleaned."
 
     if [ ! -e "$fileOut" ]; then
         echo "${prefix}$fileOut (fileOut) does not exist in $(pwd)." >&2

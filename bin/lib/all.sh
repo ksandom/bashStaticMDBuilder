@@ -6,6 +6,7 @@
 
 # System/foundations.
 . "$libPath/threading.sh"
+. "$libPath/cache.sh"
 
 # Document processing.
 . "$libPath/docProcessing.sh"
