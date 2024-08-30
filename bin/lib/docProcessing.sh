@@ -111,6 +111,14 @@ function _buildDoc
             description="$(getDocAttribute "$srcFile" 'description' "${preview}")"
             showInLatest="$(getDocAttribute "$srcFile" 'showInLatest' 'true')"
             showRelated="$(getDocAttribute "$srcFile" 'showRelated' 'true')"
+            showInAll="$(getDocAttribute "$srcFile" 'showInAll' 'true')"
+            justHideIt="$(getDocAttribute "$srcFile" 'justHideIt' 'false')"
+
+            if [ "$justHideIt" == 'true' ]; then
+                showInLatest="false"
+                showRelated="false"
+                showInAll="false"
+            fi
 
             # TODO Make it optional to override mask on a page-by-page basis.
 
@@ -139,10 +147,16 @@ function _buildDoc
                 "Prep")
                     # Build intermediate stuff.
                     if [ "$isPrimary" == "true" ]; then
+                        local all=",all"
+
+                        if [ "$showInAll" != 'true' ]; then
+                            all=''
+                        fi
+
                         if [ "$showInLatest" == 'true' ]; then
-                            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,latestContender,sitemap"
+                            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag$all,latestContender,sitemap"
                         else
-                            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag,all,sitemap"
+                            addDocToTags "$myTag" "$releaseDate" "$uniqueTags,$myTag$all,sitemap"
                         fi
                     fi
 
