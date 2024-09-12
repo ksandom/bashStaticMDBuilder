@@ -114,6 +114,11 @@ function _buildDoc
             showInAll="$(getDocAttribute "$srcFile" 'showInAll' 'true')"
             justHideIt="$(getDocAttribute "$srcFile" 'justHideIt' 'false')"
 
+            imagesTag="$myTag"
+            if [ "$(basename "$fileIn")" != 'README.me' ]; then
+                imagesTag="$justTheFolder"
+            fi
+
             if [ "$justHideIt" == 'true' ]; then
                 showInLatest="false"
                 showRelated="false"
@@ -176,7 +181,7 @@ function _buildDoc
                     mkdir -p ../intermediate/almostBuilt
                     cat ../src/templates/head.html > "$fileOut"
 
-                    cat "$srcFile" | videos | images "$myTag" | pandoc -p -f markdown -t html --wrap=none | indentedHeadings "$intermediateID" > ../intermediate/almostBuilt/"$intermediateID"
+                    cat "$srcFile" | videos | images "$imagesTag" | pandoc -p -f markdown -t html --wrap=none | indentedHeadings "$intermediateID" > ../intermediate/almostBuilt/"$intermediateID"
 
                     cat ../intermediate/almostBuilt/"$intermediateID" | insertTOC "$intermediateID" >> "$fileOut"
 
