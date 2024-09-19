@@ -309,20 +309,23 @@ function indentedHeadings
             id="$(echo "$line" | cut -d \" -f2)"
             text="$(echo "$line" | cut -d '>' -f2 | cut -d '<' -f1)"
 
-            if [ "$indentLevel" -lt "$lastIndentation" ]; then
-                for i in $(bash -c "echo {$lastIndentation..$indentLevel}" | cut -d \  -f2-); do
-                    echo "</UL>" >> "$tocFile"
-                done
-            elif [ "$indentLevel" -gt "$lastIndentation" ]; then
-                for i in $(bash -c "echo {$lastIndentation..$indentLevel}" | cut -d \  -f2-); do
-                    echo "<UL>" >> "$tocFile"
-                done
-            fi
+            handleIndentationChange "$indentLevel" "$lastIndentation"
 
             lastIndentation="$indentLevel"
 
             echo -e "</SPAN>\n$line\n<SPAN CLASS=\"indentLevel$indentLevel\">"
             echo "<LI><A HREF=\"#$id\">$text</A></LI>" >> "$tocFile"
+        elif [ "${line::8}" == '<!-- TOC' ]; then
+            if [ "$listBegun" == "0" ]; then
+                listBegun=1
+                echo "<UL>" >> "$tocFile"
+            fi
+            let indentLevel=2
+            handleIndentationChange "$indentLevel" "$lastIndentation"
+            lastIndentation="$indentLevel"
+
+            echo "<LI><A HREF=\"#table-of-contents\">Table of contents</A></LI>" >> "$tocFile"
+            echo "$line"
         else
             echo "$line"
         fi
@@ -331,6 +334,22 @@ function indentedHeadings
     for i in $(bash -c "echo {$lastIndentation..2}"); do
         echo "</UL>" >> "$tocFile"
     done
+}
+
+function handleIndentationChange
+{
+    local iLevel="$1"
+    local iLastILevel="$2"
+
+    if [ "$iLevel" -lt "$iLastILevel" ]; then
+        for i in $(bash -c "echo {$iLastILevel..$iLevel}" | cut -d \  -f2-); do
+            echo "</UL>" >> "$tocFile"
+        done
+    elif [ "$iLevel" -gt "$iLastILevel" ]; then
+        for i in $(bash -c "echo {$iLastILevel..$iLevel}" | cut -d \  -f2-); do
+            echo "<UL>" >> "$tocFile"
+        done
+    fi
 }
 
 function insertTOC
